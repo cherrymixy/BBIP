@@ -379,10 +379,33 @@ class PlanApp {
 
         const btn = document.getElementById('completePlanBtn');
         btn.disabled = true;
-        btn.innerHTML = '<span class="btn-sparkle">✦</span> 생성 중...';
+        btn.innerHTML = '<span class="btn-sparkle">✦</span> AI 분석 중...';
 
-        const tasks = this.parsePlanText(planText);
+        let tasks;
 
+        // Step 1: AI로 자연어 파싱
+        try {
+            const parseRes = await this.authFetch(`${API_BASE}/plans/parse`, {
+                method: 'POST',
+                body: JSON.stringify({ text: planText })
+            });
+            if (!parseRes) return;
+            const parseData = await parseRes.json();
+            if (parseData.success && parseData.data.length > 0) {
+                tasks = parseData.data;
+            }
+        } catch (err) {
+            console.log('AI parse failed, using fallback:', err);
+        }
+
+        // Fallback: 로컬 파서
+        if (!tasks || tasks.length === 0) {
+            tasks = this.parsePlanText(planText);
+        }
+
+        btn.innerHTML = '<span class="btn-sparkle">✦</span> 저장 중...';
+
+        // Step 2: 계획 저장
         try {
             const res = await this.authFetch(`${API_BASE}/plans/bulk`, {
                 method: 'POST',
@@ -504,30 +527,166 @@ class PlanApp {
         this.elements.planSummary.innerHTML = `오늘은 ${parts.join(', ')} 등 총 ${incomplete.length}개의 할 일이 남아있습니다.`;
     }
 
-    // ===== Parsing =====
+    // ===== Smart Korean NLP Parser =====
     parsePlanText(text) {
-        const tasks = [];
         const now = new Date();
         const today = now.toISOString().split('T')[0];
-        const timePattern = /(\d{1,2})시/g;
-        const lines = text.split(/[,.\n]/);
 
-        lines.forEach((line, index) => {
-            const trimmed = line.trim();
-            if (!trimmed) return;
-            const timeMatch = trimmed.match(timePattern);
-            let time = null;
-            if (timeMatch) {
-                const hour = parseInt(timeMatch[0]);
-                time = `${hour.toString().padStart(2, '0')}:00`;
-            } else {
-                time = `${((now.getHours() + 1 + index) % 24).toString().padStart(2, '0')}:00`;
+        // 한글 숫자 → 아라비아 숫자
+        const korNumMap = {
+            '한': 1, '두': 2, '세': 3, '네': 4, '다섯': 5,
+            '여섯': 6, '일곱': 7, '여덟': 8, '아홉': 9, '열': 10,
+            '열한': 11, '열두': 12,
+            '하나': 1, '둘': 2, '셋': 3, '넷': 4,
+        };
+
+        // 시간 표현 파싱 (여러 패턴)
+        function parseTime(clause) {
+            let hour = null, minute = 0, isPM = false, isAM = false;
+
+            // 오전/오후 감지
+            if (/오후|저녁|밤/.test(clause)) isPM = true;
+            if (/오전|아침|새벽/.test(clause)) isAM = true;
+
+            // 패턴 1: 한글 숫자 시 (열두시, 세시 반 등)
+            const korPattern = /(한|두|세|네|다섯|여섯|일곱|여덟|아홉|열한|열두|열|하나|둘|셋|넷)\s*시/;
+            const korMatch = clause.match(korPattern);
+            if (korMatch) {
+                hour = korNumMap[korMatch[1]];
             }
+
+            // 패턴 2: 아라비아 숫자 시 (9시, 12시 등)
+            if (hour === null) {
+                const numPattern = /(\d{1,2})\s*시/;
+                const numMatch = clause.match(numPattern);
+                if (numMatch) hour = parseInt(numMatch[1]);
+            }
+
+            // 패턴 3: HH:MM or H:MM 형식
+            if (hour === null) {
+                const colonMatch = clause.match(/(\d{1,2}):(\d{2})/);
+                if (colonMatch) {
+                    hour = parseInt(colonMatch[1]);
+                    minute = parseInt(colonMatch[2]);
+                }
+            }
+
+            if (hour === null) return null;
+
+            // 분 파싱
+            const minPattern = /(\d{1,2})\s*분/;
+            const minMatch = clause.match(minPattern);
+            if (minMatch) minute = parseInt(minMatch[1]);
+
+            // "반" = 30분
+            if (/시\s*반/.test(clause) || new RegExp(korPattern.source + '\\s*반').test(clause)) {
+                minute = 30;
+            }
+
+            // 오전/오후 보정
+            if (isPM && hour < 12) hour += 12;
+            if (isAM && hour === 12) hour = 0;
+
+            // 시간 모호할 때 (1~6) → 오후로 추정 (명시적 오전 제외)
+            if (!isAM && !isPM && hour >= 1 && hour <= 6) hour += 12;
+
+            return `${String(hour).padStart(2, '0')}:${String(minute).padStart(2, '0')}`;
+        }
+
+        // 제목 추출: 시간 표현 + 불필요한 어미/접속사 제거
+        function extractTitle(clause) {
+            let title = clause;
+
+            // 시간 관련 표현 제거
+            title = title.replace(/오전|오후|아침|저녁|밤|새벽/g, '');
+            title = title.replace(/(한|두|세|네|다섯|여섯|일곱|여덟|아홉|열한|열두|열|하나|둘|셋|넷)\s*시\s*(반)?/g, '');
+            title = title.replace(/\d{1,2}\s*시\s*(반)?/g, '');
+            title = title.replace(/\d{1,2}\s*분/g, '');
+            title = title.replace(/\d{1,2}:\d{2}/g, '');
+
+            // 조사/어미 정리
+            title = title.replace(/^(나는|저는|나|저)\s*/g, '');
+            title = title.replace(/^(오늘|내일|모레)\s*/g, '');
+            title = title.replace(/(에|까지|부터|에서|으로|로|을|를|이|가|은|는|도|만)\s*$/g, '');
+            title = title.replace(/(있어|있고|해야\s*해|해야\s*하고|해야\s*하는|해야\s*돼|해야\s*되는|해야\s*될|있습니다|거야|할\s*거야)$/g, '');
+            title = title.replace(/(제출해야\s*하는)\s*/g, '');
+            title = title.replace(/(까지\s*(제출|완료|마감)해야\s*(하는|할|되는))\s*/g, '');
+
+            // "~까지 제출해야 하는 PPT" → "PPT 제출"
+            const deadlineMatch = clause.match(/까지\s*(제출|완료|마감)해야\s*(하는|할|되는)\s+(.+?)(?:\s*(?:있|해야|$))/);
+            if (deadlineMatch) {
+                return `${deadlineMatch[3].trim()} ${deadlineMatch[1]}`;
+            }
+
+            // "~까지 ... 제출/완료" 패턴
+            const untilMatch = clause.match(/까지\s+(.+?)(?:\s+(?:제출|완료|마감))/);
+            if (untilMatch) {
+                const item = untilMatch[1].replace(/\d{1,2}\s*시\s*(반)?/g, '').replace(/\d{1,2}\s*분/g, '').trim();
+                if (item) return `${item} 제출`;
+            }
+
+            // 일반 정리
+            title = title.replace(/\s{2,}/g, ' ').trim();
+
+            // 앞뒤 조사 한 번 더 정리
+            title = title.replace(/^(에|의|와|과|에서)\s+/g, '');
+            title = title.replace(/\s+(에|을|를|이|가)$/g, '');
+
+            return title.trim();
+        }
+
+        // 절(clause) 분리: 접속사, 쉼표, 줄바꿈 기준
+        const clauses = text
+            .split(/[,.\n]|(?:있고|하고|그리고|또|또한|이랑|랑|(?:해야\s*하고)|(?:해야\s*되고))/g)
+            .map(c => c.trim())
+            .filter(c => c.length > 0);
+
+        // "까지 ... 있어" 패턴 특별 처리 → 하나의 절에 시간+내용이 두 개 묶일 수 있음
+        // "9시 30분에 회의" + "열두시까지 제출해야 하는 PPT"
+        const tasks = [];
+        const processed = [];
+
+        for (const clause of clauses) {
+            // 하나의 절 안에 시간 표현이 2개 이상이면 re-split
+            const timeOccurrences = [];
+            const timeRe = /(?:(?:한|두|세|네|다섯|여섯|일곱|여덟|아홉|열한|열두|열)\s*시|\d{1,2}\s*시|\d{1,2}:\d{2})/g;
+            let m;
+            while ((m = timeRe.exec(clause)) !== null) {
+                timeOccurrences.push(m.index);
+            }
+
+            if (timeOccurrences.length >= 2) {
+                // 두 번째 시간 표현 앞에서 split
+                const split1 = clause.substring(0, timeOccurrences[1]).trim();
+                const split2 = clause.substring(timeOccurrences[1]).trim();
+                if (split1) processed.push(split1);
+                if (split2) processed.push(split2);
+            } else {
+                processed.push(clause);
+            }
+        }
+
+        for (const clause of processed) {
+            const time = parseTime(clause);
+            let title = extractTitle(clause);
+
+            if (!title || title.length < 1) continue;
+
+            // 첫 글자 대문자화 (영문일 경우)
+            if (/^[a-z]/.test(title)) {
+                title = title.charAt(0).toUpperCase() + title.slice(1);
+            }
+
             tasks.push({
-                title: trimmed.replace(timePattern, '').trim() || trimmed,
-                time, date: today
+                title,
+                time: time || `${String((now.getHours() + 1 + tasks.length) % 24).padStart(2, '0')}:00`,
+                date: today
             });
-        });
+        }
+
+        // 시간으로 정렬
+        tasks.sort((a, b) => (a.time || '').localeCompare(b.time || ''));
+
         return tasks;
     }
 
