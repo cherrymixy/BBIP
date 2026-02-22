@@ -247,6 +247,54 @@
                     </div>
                 </div>
             </div>
+
+            <!-- Stats Page -->
+            <div id="pageStats" class="page-content">
+                <div class="stats-container">
+                    <div class="stats-summary">
+                        <div class="card stat-card">
+                            <div class="stat-card-icon">📋</div>
+                            <div class="stat-card-value" id="statTotalPlans">0</div>
+                            <div class="stat-card-label">전체 계획</div>
+                        </div>
+                        <div class="card stat-card">
+                            <div class="stat-card-icon">✅</div>
+                            <div class="stat-card-value" id="statCompleted">0</div>
+                            <div class="stat-card-label">완료</div>
+                        </div>
+                        <div class="card stat-card">
+                            <div class="stat-card-icon">📊</div>
+                            <div class="stat-card-value" id="statRate">0%</div>
+                            <div class="stat-card-label">달성률</div>
+                        </div>
+                        <div class="card stat-card">
+                            <div class="stat-card-icon">🔥</div>
+                            <div class="stat-card-value" id="statStreak">0일</div>
+                            <div class="stat-card-label">연속 달성</div>
+                        </div>
+                    </div>
+
+                    <div class="card stats-chart-card">
+                        <div class="card-header">
+                            <h3>주간 달성률</h3>
+                            <span class="stats-period" id="statsPeriod">최근 7일</span>
+                        </div>
+                        <div class="stats-chart" id="statsChart"></div>
+                    </div>
+
+                    <div class="card stats-recent-card">
+                        <div class="card-header">
+                            <h3>최근 활동</h3>
+                        </div>
+                        <div class="stats-recent-list" id="statsRecentList">
+                            <div class="cal-tasks-empty">
+                                <div class="empty-icon">📊</div>
+                                <p>아직 데이터가 없습니다.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </main>
     </div>
 
