@@ -18,7 +18,7 @@
     --accent-glow: rgba(255, 94, 79, 0.2);
     --accent-gradient: linear-gradient(135deg, #FF5E4F, #ff7e6f, #ffaa8a);
 
-    --border-color: rgba(255, 255, 255, 0.055);
+    --border-color: transparent;
     --border-radius-sm: 12px;
     --border-radius-md: 16px;
     --border-radius-lg: 24px;
@@ -34,7 +34,7 @@
     --header-height: 80px;
 
     --glass-bg: rgba(255, 255, 255, 0.025);
-    --glass-border: rgba(255, 255, 255, 0.07);
+    --glass-border: transparent;
     --glass-shadow: 0 8px 40px rgba(0, 0, 0, 0.35);
 }
 
@@ -1120,7 +1120,7 @@ body {
     margin-left: auto;
     padding: 8px 16px;
     background: rgba(255, 94, 79, 0.08);
-    border: 1px solid rgba(255, 94, 79, 0.2);
+    border: none;
     border-radius: var(--border-radius-sm);
     color: var(--accent-primary);
     font-size: 13px;
@@ -1201,12 +1201,12 @@ body {
 
 .cal-day.today {
     background: rgba(255, 94, 79, 0.06);
-    border: 1px solid rgba(255, 94, 79, 0.15);
+    border: none;
 }
 
 .cal-day.selected {
     background: rgba(255, 94, 79, 0.12);
-    border: 1px solid rgba(255, 94, 79, 0.3);
+    border: none;
 }
 
 .cal-day.selected .day-number {

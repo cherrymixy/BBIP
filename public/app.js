@@ -744,6 +744,10 @@ class PlanApp {
         const target = document.getElementById(`page${page.charAt(0).toUpperCase() + page.slice(1)}`);
         if (target) target.classList.add('active');
 
+        // Hide header (date + add plan btn) on stats page
+        const header = document.querySelector('.main-header');
+        if (header) header.style.display = page === 'stats' ? 'none' : '';
+
         if (page === 'calendar' && !this._calendarInitialized) {
             this.initCalendar();
             this._calendarInitialized = true;
@@ -975,13 +979,23 @@ class PlanApp {
         document.getElementById('statTotalPlans').textContent = total;
         document.getElementById('statCompleted').textContent = completed;
 
-        // Insight
-        document.getElementById('statAvgRate').textContent = `${rate}%`;
-        document.getElementById('statInsightBarLabel').textContent = `${completed}\uac1c \uc644\ub8cc`;
+        // Weekly insight (last 7 days)
+        const now = new Date();
+        const weekAgo = new Date(now);
+        weekAgo.setDate(weekAgo.getDate() - 6);
+        const weekStart = weekAgo.toISOString().split('T')[0];
+        const weekEnd = now.toISOString().split('T')[0];
+        const weekPlans = allPlans.filter(p => p.date >= weekStart && p.date <= weekEnd);
+        const weekTotal = weekPlans.length;
+        const weekCompleted = weekPlans.filter(p => p.completed).length;
+        const weekRate = weekTotal > 0 ? Math.round((weekCompleted / weekTotal) * 100) : 0;
+
+        document.getElementById('statAvgRate').textContent = `${weekRate}%`;
+        document.getElementById('statInsightBarLabel').textContent = `${weekCompleted}\uac1c \uc644\ub8cc`;
 
         // Animate bar
         requestAnimationFrame(() => {
-            document.getElementById('statInsightBarFill').style.width = `${Math.max(rate, 2)}%`;
+            document.getElementById('statInsightBarFill').style.width = `${Math.max(weekRate, 2)}%`;
         });
 
         // Streak
