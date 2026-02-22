@@ -919,14 +919,33 @@ class PlanApp {
         });
     }
     // ===== Stats =====
-    async loadStats() {
-        // Fetch last 30 days of data
-        const now = new Date();
-        const thirtyAgo = new Date(now);
-        thirtyAgo.setDate(thirtyAgo.getDate() - 29);
+    initStats() {
+        this._statsYear = new Date().getFullYear();
 
-        const startDate = thirtyAgo.toISOString().split('T')[0];
-        const endDate = now.toISOString().split('T')[0];
+        document.getElementById('statYearPrev').addEventListener('click', () => {
+            this._statsYear--;
+            this.loadStats();
+        });
+        document.getElementById('statYearNext').addEventListener('click', () => {
+            this._statsYear++;
+            this.loadStats();
+        });
+    }
+
+    async loadStats() {
+        if (!this._statsInitialized) {
+            this.initStats();
+            this._statsInitialized = true;
+        }
+
+        const year = this._statsYear;
+        document.getElementById('statYearTitle').textContent = `${year}\ub144`;
+        document.getElementById('statTotalYear').textContent = `${year} \uc804\uccb4 \uacc4\ud68d`;
+        document.getElementById('statCompletedYear').textContent = `${year} \uc644\ub8cc`;
+
+        // Fetch full year
+        const startDate = `${year}-01-01`;
+        const endDate = `${year}-12-31`;
 
         let allPlans = [];
         try {
@@ -938,6 +957,16 @@ class PlanApp {
             console.log('Stats fetch error:', err);
         }
 
+        // Group by month
+        const monthly = Array.from({ length: 12 }, () => ({ total: 0, completed: 0 }));
+        allPlans.forEach(p => {
+            const m = parseInt(p.date.split('-')[1]) - 1;
+            if (m >= 0 && m < 12) {
+                monthly[m].total++;
+                if (p.completed) monthly[m].completed++;
+            }
+        });
+
         // Summary cards
         const total = allPlans.length;
         const completed = allPlans.filter(p => p.completed).length;
@@ -945,17 +974,22 @@ class PlanApp {
 
         document.getElementById('statTotalPlans').textContent = total;
         document.getElementById('statCompleted').textContent = completed;
-        document.getElementById('statRate').textContent = `${rate}%`;
 
-        // Streak: consecutive days (backwards from today) where all plans were completed
-        const streak = this.calcStreak(allPlans, now);
+        // Insight
+        document.getElementById('statAvgRate').textContent = `${rate}%`;
+        document.getElementById('statInsightBarLabel').textContent = `${completed}\uac1c \uc644\ub8cc`;
+
+        // Animate bar
+        requestAnimationFrame(() => {
+            document.getElementById('statInsightBarFill').style.width = `${Math.max(rate, 2)}%`;
+        });
+
+        // Streak
+        const streak = this.calcStreak(allPlans, new Date());
         document.getElementById('statStreak').textContent = `${streak}\uc77c`;
 
-        // Weekly bar chart (last 7 days)
-        this.renderWeeklyChart(allPlans, now);
-
-        // Recent activity (last 7 days with plans)
-        this.renderRecentActivity(allPlans);
+        // Monthly bar chart
+        this.renderMonthlyChart(monthly, year);
     }
 
     calcStreak(plans, now) {
@@ -968,7 +1002,7 @@ class PlanApp {
 
         let streak = 0;
         const d = new Date(now);
-        for (let i = 0; i < 30; i++) {
+        for (let i = 0; i < 60; i++) {
             const dateStr = d.toISOString().split('T')[0];
             const g = grouped[dateStr];
             if (g && g.total > 0 && g.completed === g.total) {
@@ -976,91 +1010,52 @@ class PlanApp {
             } else if (g && g.total > 0) {
                 break;
             }
-            // Skip days with no plans (don't break streak)
             d.setDate(d.getDate() - 1);
         }
         return streak;
     }
 
-    renderWeeklyChart(plans, now) {
-        const chart = document.getElementById('statsChart');
-        const weekdays = ['\uc77c', '\uc6d4', '\ud654', '\uc218', '\ubaa9', '\uae08', '\ud1a0'];
-        const days = [];
+    renderMonthlyChart(monthly, year) {
+        const chart = document.getElementById('statsMonthlyChart');
+        const yAxis = document.getElementById('statsYAxis');
+        const labels = document.getElementById('statsMonthLabels');
+        const currentMonth = new Date().getFullYear() === year ? new Date().getMonth() : -1;
 
-        for (let i = 6; i >= 0; i--) {
-            const d = new Date(now);
-            d.setDate(d.getDate() - i);
-            const dateStr = d.toISOString().split('T')[0];
-            const dayPlans = plans.filter(p => p.date === dateStr);
-            const total = dayPlans.length;
-            const completed = dayPlans.filter(p => p.completed).length;
-            const pct = total > 0 ? Math.round((completed / total) * 100) : 0;
-            days.push({
-                label: weekdays[d.getDay()],
-                date: `${d.getMonth() + 1}/${d.getDate()}`,
-                pct,
-                total,
-                completed,
-                isToday: i === 0
-            });
+        // Find max for y-axis
+        const maxVal = Math.max(...monthly.map(m => m.completed), 1);
+        const yMax = Math.ceil(maxVal / 2) * 2 || 2;
+
+        // Y-axis labels
+        const steps = 5;
+        yAxis.innerHTML = '';
+        for (let i = 0; i <= steps; i++) {
+            const val = Math.round((yMax / steps) * i);
+            yAxis.innerHTML += `<span class="stats-y-label">${val}</span>`;
         }
 
-        chart.innerHTML = days.map(day => `
-            <div class="chart-bar-wrapper">
-                <div class="chart-bar-value">${day.total > 0 ? day.pct + '%' : '-'}</div>
-                <div class="chart-bar-track">
-                    <div class="chart-bar-fill${day.total === 0 ? ' empty' : ''}" style="height: 0%" data-height="${day.pct}"></div>
-                </div>
-                <div class="chart-bar-label" style="${day.isToday ? 'color: var(--accent-primary); font-weight: 700;' : ''}">${day.label}</div>
-            </div>
-        `).join('');
+        // Bars
+        chart.innerHTML = monthly.map((m, i) => {
+            const h = yMax > 0 ? (m.completed / yMax) * 100 : 0;
+            const isCurrent = i === currentMonth;
+            const hasData = m.total > 0;
+            return `<div class="stats-m-bar-wrap">
+                <div class="stats-m-bar${isCurrent ? ' current' : ''}${hasData ? ' has-data' : ''}" style="height: 0%" data-h="${h}"></div>
+            </div>`;
+        }).join('');
+
+        // Month labels
+        const monthNames = ['1\uc6d4', '2\uc6d4', '3\uc6d4', '4\uc6d4', '5\uc6d4', '6\uc6d4', '7\uc6d4', '8\uc6d4', '9\uc6d4', '10\uc6d4', '11\uc6d4', '12\uc6d4'];
+        labels.innerHTML = monthNames.map((name, i) =>
+            `<span class="stats-month-lbl${i === currentMonth ? ' current' : ''}">${name}</span>`
+        ).join('');
 
         // Animate bars
         requestAnimationFrame(() => {
-            chart.querySelectorAll('.chart-bar-fill').forEach(bar => {
-                const h = bar.dataset.height;
-                bar.style.height = `${Math.max(h, 3)}%`;
+            chart.querySelectorAll('.stats-m-bar').forEach(bar => {
+                const h = bar.dataset.h;
+                bar.style.height = `${Math.max(parseFloat(h), 2)}%`;
             });
         });
-    }
-
-    renderRecentActivity(plans) {
-        const list = document.getElementById('statsRecentList');
-
-        // Group by date, most recent first
-        const grouped = {};
-        plans.forEach(p => {
-            if (!grouped[p.date]) grouped[p.date] = [];
-            grouped[p.date].push(p);
-        });
-
-        const dates = Object.keys(grouped).sort().reverse().slice(0, 5);
-
-        if (dates.length === 0) {
-            list.innerHTML = `<div class="cal-tasks-empty"><div class="empty-icon">\ud83d\udcca</div><p>\uc544\uc9c1 \ub370\uc774\ud130\uac00 \uc5c6\uc2b5\ub2c8\ub2e4.</p></div>`;
-            return;
-        }
-
-        const weekdays = ['\uc77c', '\uc6d4', '\ud654', '\uc218', '\ubaa9', '\uae08', '\ud1a0'];
-        list.innerHTML = dates.map(dateStr => {
-            const [y, m, d] = dateStr.split('-');
-            const dateObj = new Date(parseInt(y), parseInt(m) - 1, parseInt(d));
-            const tasks = grouped[dateStr].sort((a, b) => (a.time || '').localeCompare(b.time || ''));
-            const label = `${parseInt(m)}/${parseInt(d)} (${weekdays[dateObj.getDay()]})`;
-
-            return `
-                <div class="stats-day-group">
-                    <div class="stats-day-label">${label} — ${tasks.filter(t => t.completed).length}/${tasks.length} \uc644\ub8cc</div>
-                    ${tasks.map(t => `
-                        <div class="stats-task-row${t.completed ? ' completed' : ''}">
-                            <div class="stats-task-status"></div>
-                            <span class="stats-task-time">${this.escapeHtml(t.time || '')}</span>
-                            <span class="stats-task-title">${this.escapeHtml(t.title)}</span>
-                        </div>
-                    `).join('')}
-                </div>
-            `;
-        }).join('');
     }
 }
 
