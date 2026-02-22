@@ -15,8 +15,8 @@
 
     --accent-primary: #FF5E4F;
     --accent-secondary: #ff7e6f;
-    --accent-glow: rgba(255, 94, 79, 0.2);
-    --accent-gradient: linear-gradient(135deg, #FF5E4F, #ff7e6f, #ffaa8a);
+    --accent-glow: rgba(255, 94, 79, 0.15);
+    --accent-gradient: #FF5E4F;
 
     --border-color: transparent;
     --border-radius-sm: 12px;
@@ -35,7 +35,7 @@
 
     --glass-bg: rgba(255, 255, 255, 0.025);
     --glass-border: transparent;
-    --glass-shadow: 0 8px 40px rgba(0, 0, 0, 0.35);
+    --glass-shadow: none;
 }
 
 *,
@@ -59,10 +59,6 @@ body {
     color: var(--text-primary);
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
-    background-image:
-        radial-gradient(ellipse 70% 45% at 30% -10%, rgba(255, 94, 79, 0.06), transparent),
-        radial-gradient(ellipse 50% 35% at 85% 50%, rgba(60, 100, 180, 0.04), transparent),
-        radial-gradient(ellipse 40% 40% at 10% 80%, rgba(120, 80, 200, 0.025), transparent);
 }
 
 /* ====================
@@ -80,7 +76,7 @@ body {
 .sidebar {
     width: var(--sidebar-width);
     height: 100vh;
-    background: linear-gradient(180deg, var(--bg-sidebar) 0%, #0d0e16 100%);
+    background: var(--bg-sidebar);
     border-right: 1px solid var(--border-color);
     display: flex;
     flex-direction: column;
@@ -307,7 +303,7 @@ body {
     align-items: center;
     gap: 8px;
     padding: 12px 24px;
-    background: var(--accent-gradient);
+    background: var(--accent-primary);
     border: none;
     border-radius: var(--border-radius-xl);
     color: white;
@@ -315,34 +311,15 @@ body {
     font-weight: 700;
     cursor: pointer;
     transition: all var(--transition-fast);
-    box-shadow: 0 4px 20px var(--accent-glow), inset 0 1px 0 rgba(255, 255, 255, 0.2);
     font-family: var(--font-family);
-    position: relative;
-    overflow: hidden;
-}
-
-.add-plan-btn::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: -100%;
-    width: 100%;
-    height: 100%;
-    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
-    transition: left 0.5s ease;
-}
-
-.add-plan-btn:hover::before {
-    left: 100%;
 }
 
 .add-plan-btn:hover {
-    transform: translateY(-2px) scale(1.02);
-    box-shadow: 0 8px 32px var(--accent-glow), inset 0 1px 0 rgba(255, 255, 255, 0.3);
+    opacity: 0.85;
 }
 
 .add-plan-btn:active {
-    transform: translateY(0) scale(0.98);
+    transform: scale(0.97);
 }
 
 .add-plan-btn svg {
@@ -366,21 +343,11 @@ body {
    ==================== */
 .card {
     background: var(--glass-bg);
-    backdrop-filter: blur(24px);
-    -webkit-backdrop-filter: blur(24px);
-    border: 1px solid var(--glass-border);
+    border: none;
     border-radius: var(--border-radius-lg);
     padding: 28px;
     position: relative;
     overflow: hidden;
-    transition: border-color var(--transition-normal), box-shadow var(--transition-normal), transform var(--transition-fast);
-    box-shadow: 0 2px 16px rgba(0, 0, 0, 0.15), inset 0 1px 0 rgba(255, 255, 255, 0.04);
-}
-
-.card:hover {
-    border-color: rgba(255, 255, 255, 0.1);
-    box-shadow: 0 8px 40px rgba(0, 0, 0, 0.25), inset 0 1px 0 rgba(255, 255, 255, 0.06);
-    transform: translateY(-1px);
 }
 
 .card-header {
@@ -408,28 +375,7 @@ body {
 }
 
 .greeting-card .card-glow {
-    position: absolute;
-    top: -50%;
-    right: -20%;
-    width: 300px;
-    height: 300px;
-    background: radial-gradient(circle, rgba(255, 94, 79, 0.07), transparent 70%);
-    pointer-events: none;
-    animation: glowPulse 4s ease-in-out infinite;
-}
-
-@keyframes glowPulse {
-
-    0%,
-    100% {
-        opacity: 0.6;
-        transform: scale(1);
-    }
-
-    50% {
-        opacity: 1;
-        transform: scale(1.1);
-    }
+    display: none;
 }
 
 .greeting-hello {
@@ -707,7 +653,7 @@ body {
 
 .check-btn.checked::before {
     background: var(--accent-primary);
-    box-shadow: 0 0 16px var(--accent-glow);
+    box-shadow: none;
 }
 
 .check-icon {
@@ -762,7 +708,7 @@ body {
     max-height: 80vh;
     display: flex;
     flex-direction: column;
-    box-shadow: 0 24px 80px rgba(0, 0, 0, 0.5);
+    box-shadow: none;
     transform: translateY(20px) scale(0.95);
     transition: transform var(--transition-normal);
 }
@@ -911,7 +857,7 @@ body {
     font-weight: 600;
     cursor: pointer;
     transition: all var(--transition-fast);
-    box-shadow: 0 4px 20px var(--accent-glow);
+    box-shadow: none;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -921,7 +867,7 @@ body {
 
 .submit-btn:hover {
     transform: translateY(-2px);
-    box-shadow: 0 8px 30px var(--accent-glow);
+    box-shadow: none;
 }
 
 .submit-btn:active {
@@ -1019,12 +965,12 @@ body {
     cursor: pointer;
     transition: all var(--transition-fast);
     font-family: var(--font-family);
-    box-shadow: 0 4px 20px var(--accent-glow);
+    box-shadow: none;
 }
 
 .voice-stop-btn:hover {
     transform: translateY(-2px);
-    box-shadow: 0 8px 30px var(--accent-glow);
+    box-shadow: none;
 }
 
 /* ====================
@@ -1829,9 +1775,6 @@ body {
     align-items: center;
     justify-content: center;
     background: var(--bg-primary);
-    background-image:
-        radial-gradient(ellipse 80% 50% at 50% -20%, rgba(255, 94, 79, 0.12), transparent),
-        radial-gradient(ellipse 60% 40% at 80% 80%, rgba(100, 60, 255, 0.06), transparent);
     z-index: 500;
 }
 
@@ -1875,9 +1818,7 @@ body {
 
 .auth-form {
     background: var(--glass-bg);
-    backdrop-filter: blur(20px);
-    -webkit-backdrop-filter: blur(20px);
-    border: 1px solid var(--glass-border);
+    border: none;
     border-radius: var(--border-radius-lg);
     padding: 32px;
 }
@@ -1947,14 +1888,14 @@ body {
     font-weight: 600;
     cursor: pointer;
     transition: all var(--transition-fast);
-    box-shadow: 0 4px 20px var(--accent-glow);
+    box-shadow: none;
     font-family: var(--font-family);
     margin-top: 8px;
 }
 
 .auth-submit-btn:hover {
     transform: translateY(-2px);
-    box-shadow: 0 8px 30px var(--accent-glow);
+    box-shadow: none;
 }
 
 .auth-submit-btn:active {
