@@ -139,7 +139,6 @@
         </button>
         <div class="mobile-overlay" id="mobileOverlay"></div>
 
-        <!-- Main Content -->
         <main class="main-content">
             <header class="main-header">
                 <div class="header-left">
@@ -158,52 +157,95 @@
                 </div>
             </header>
 
-            <div class="dashboard-grid">
-                <section class="card greeting-card">
-                    <div class="card-glow"></div>
-                    <div class="greeting-content">
-                        <p class="greeting-hello">좋은 아침입니다, <span class="emoji" id="greetEmoji">🐔</span> <strong
-                                id="greetName">사용자</strong> 님</p>
-                        <p class="greeting-summary" id="planSummary">
-                            아직 오늘의 계획이 없습니다.<br>상단의 <strong>계획 입력하기</strong> 버튼을 눌러 하루를 시작해보세요! ✨
-                        </p>
-                    </div>
-                </section>
-
-                <section class="card progress-card">
-                    <div class="card-header">
-                        <h3>오늘의 진행률</h3>
-                    </div>
-                    <div class="progress-ring-container">
-                        <svg class="progress-ring" viewBox="0 0 120 120">
-                            <circle class="progress-ring-bg" cx="60" cy="60" r="52" />
-                            <circle class="progress-ring-fill" id="progressRing" cx="60" cy="60" r="52" />
-                        </svg>
-                        <div class="progress-text">
-                            <span class="progress-percent" id="progressPercent">0</span>
-                            <span class="progress-label">%</span>
+            <!-- Home Page -->
+            <div id="pageHome" class="page-content active">
+                <div class="dashboard-grid">
+                    <section class="card greeting-card">
+                        <div class="card-glow"></div>
+                        <div class="greeting-content">
+                            <p class="greeting-hello">좋은 아침입니다, <span class="emoji" id="greetEmoji">🐔</span> <strong
+                                    id="greetName">사용자</strong> 님</p>
+                            <p class="greeting-summary" id="planSummary">
+                                아직 오늘의 계획이 없습니다.<br>상단의 <strong>계획 입력하기</strong> 버튼을 눌러 하루를 시작해보세요! ✨
+                            </p>
                         </div>
-                    </div>
-                    <div class="progress-stats">
-                        <div class="stat"><span class="stat-number" id="completedCount">0</span><span
-                                class="stat-label">완료</span></div>
-                        <div class="stat-divider"></div>
-                        <div class="stat"><span class="stat-number" id="remainingCount">0</span><span
-                                class="stat-label">남음</span></div>
-                    </div>
-                </section>
+                    </section>
 
-                <section class="card schedule-card">
-                    <div class="card-header">
-                        <h3>Now <span class="header-sub">and Next</span></h3>
+                    <section class="card progress-card">
+                        <div class="card-header">
+                            <h3>오늘의 진행률</h3>
+                        </div>
+                        <div class="progress-ring-container">
+                            <svg class="progress-ring" viewBox="0 0 120 120">
+                                <circle class="progress-ring-bg" cx="60" cy="60" r="52" />
+                                <circle class="progress-ring-fill" id="progressRing" cx="60" cy="60" r="52" />
+                            </svg>
+                            <div class="progress-text">
+                                <span class="progress-percent" id="progressPercent">0</span>
+                                <span class="progress-label">%</span>
+                            </div>
+                        </div>
+                        <div class="progress-stats">
+                            <div class="stat"><span class="stat-number" id="completedCount">0</span><span
+                                    class="stat-label">완료</span></div>
+                            <div class="stat-divider"></div>
+                            <div class="stat"><span class="stat-number" id="remainingCount">0</span><span
+                                    class="stat-label">남음</span></div>
+                        </div>
+                    </section>
+
+                    <section class="card schedule-card">
+                        <div class="card-header">
+                            <h3>Now <span class="header-sub">and Next</span></h3>
+                        </div>
+                        <div class="schedule-empty" id="scheduleEmpty" style="display: none;">
+                            <div class="empty-icon">😊</div>
+                            <p>아직 생성된 할 일이 없습니다.</p>
+                            <button class="empty-add-btn" id="emptyAddBtn">+ 계획 추가하기</button>
+                        </div>
+                        <div class="schedule-list" id="scheduleList"></div>
+                    </section>
+                </div>
+            </div>
+
+            <!-- Calendar Page -->
+            <div id="pageCalendar" class="page-content">
+                <div class="calendar-container">
+                    <div class="card calendar-card">
+                        <div class="calendar-header">
+                            <button class="cal-nav-btn" id="calPrev">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                    stroke-width="2">
+                                    <polyline points="15 18 9 12 15 6"></polyline>
+                                </svg>
+                            </button>
+                            <h3 class="cal-month-title" id="calMonthTitle">2026년 2월</h3>
+                            <button class="cal-nav-btn" id="calNext">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                    stroke-width="2">
+                                    <polyline points="9 18 15 12 9 6"></polyline>
+                                </svg>
+                            </button>
+                            <button class="cal-today-btn" id="calToday">오늘</button>
+                        </div>
+                        <div class="calendar-weekdays">
+                            <span>일</span><span>월</span><span>화</span><span>수</span><span>목</span><span>금</span><span>토</span>
+                        </div>
+                        <div class="calendar-grid" id="calendarGrid"></div>
                     </div>
-                    <div class="schedule-empty" id="scheduleEmpty" style="display: none;">
-                        <div class="empty-icon">😊</div>
-                        <p>아직 생성된 할 일이 없습니다.</p>
-                        <button class="empty-add-btn" id="emptyAddBtn">+ 계획 추가하기</button>
+
+                    <div class="card cal-tasks-card">
+                        <div class="card-header">
+                            <h3 id="calSelectedDate">선택된 날짜</h3>
+                            <span class="cal-task-count" id="calTaskCount">0개</span>
+                        </div>
+                        <div class="cal-tasks-empty" id="calTasksEmpty">
+                            <div class="empty-icon">📅</div>
+                            <p>이 날의 계획이 없습니다.</p>
+                        </div>
+                        <div class="cal-tasks-list" id="calTasksList"></div>
                     </div>
-                    <div class="schedule-list" id="scheduleList"></div>
-                </section>
+                </div>
             </div>
         </main>
     </div>

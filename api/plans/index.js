@@ -13,10 +13,16 @@ module.exports = async function handler(req, res) {
 
     try {
         if (req.method === 'GET') {
-            const { date } = req.query;
+            const { date, start, end } = req.query;
             let result;
 
-            if (date) {
+            if (start && end) {
+                // Date range query (for calendar month view)
+                result = await db.execute({
+                    sql: 'SELECT * FROM plans WHERE user_id = ? AND date >= ? AND date <= ? ORDER BY date ASC, time ASC',
+                    args: [decoded.id, start, end]
+                });
+            } else if (date) {
                 result = await db.execute({
                     sql: 'SELECT * FROM plans WHERE user_id = ? AND date = ? ORDER BY time ASC',
                     args: [decoded.id, date]

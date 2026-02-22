@@ -314,11 +314,16 @@ class PlanApp {
             this.elements.mobileOverlay.classList.remove('active');
         });
 
-        // Sidebar nav
+        // Sidebar nav → page switching
         document.querySelectorAll('.sidebar-nav .nav-item').forEach(btn => {
             btn.addEventListener('click', () => {
+                const page = btn.dataset.page;
                 document.querySelectorAll('.sidebar-nav .nav-item').forEach(b => b.classList.remove('active'));
                 btn.classList.add('active');
+                this.switchPage(page);
+                // Close mobile menu
+                this.elements.sidebar.classList.remove('open');
+                this.elements.mobileOverlay.classList.remove('active');
             });
         });
 
@@ -731,6 +736,184 @@ class PlanApp {
         const div = document.createElement('div');
         div.textContent = text;
         return div.innerHTML;
+    }
+
+    // ===== Page Switching =====
+    switchPage(page) {
+        document.querySelectorAll('.page-content').forEach(p => p.classList.remove('active'));
+        const target = document.getElementById(`page${page.charAt(0).toUpperCase() + page.slice(1)}`);
+        if (target) target.classList.add('active');
+
+        if (page === 'calendar' && !this._calendarInitialized) {
+            this.initCalendar();
+            this._calendarInitialized = true;
+        }
+        if (page === 'calendar') {
+            this.renderCalendar();
+        }
+    }
+
+    // ===== Calendar =====
+    initCalendar() {
+        this._calViewDate = new Date();
+        this._calSelectedDate = new Date().toISOString().split('T')[0];
+        this._calPlansCache = {};
+
+        document.getElementById('calPrev').addEventListener('click', () => {
+            this._calViewDate.setMonth(this._calViewDate.getMonth() - 1);
+            this.renderCalendar();
+        });
+        document.getElementById('calNext').addEventListener('click', () => {
+            this._calViewDate.setMonth(this._calViewDate.getMonth() + 1);
+            this.renderCalendar();
+        });
+        document.getElementById('calToday').addEventListener('click', () => {
+            this._calViewDate = new Date();
+            this._calSelectedDate = new Date().toISOString().split('T')[0];
+            this.renderCalendar();
+        });
+    }
+
+    async renderCalendar() {
+        const year = this._calViewDate.getFullYear();
+        const month = this._calViewDate.getMonth();
+
+        // Month title
+        document.getElementById('calMonthTitle').textContent = `${year}년 ${month + 1}월`;
+
+        // Fetch plans for this month
+        await this.fetchMonthPlans(year, month);
+
+        const grid = document.getElementById('calendarGrid');
+        const firstDay = new Date(year, month, 1).getDay();
+        const daysInMonth = new Date(year, month + 1, 0).getDate();
+        const daysInPrev = new Date(year, month, 0).getDate();
+        const today = new Date().toISOString().split('T')[0];
+
+        let html = '';
+
+        // Previous month filler days
+        for (let i = firstDay - 1; i >= 0; i--) {
+            const day = daysInPrev - i;
+            html += `<div class="cal-day other-month"><span class="day-number">${day}</span><div class="cal-day-dots"></div></div>`;
+        }
+
+        // Current month days
+        for (let d = 1; d <= daysInMonth; d++) {
+            const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+            const dayOfWeek = new Date(year, month, d).getDay();
+            const classes = ['cal-day'];
+
+            if (dateStr === today) classes.push('today');
+            if (dateStr === this._calSelectedDate) classes.push('selected');
+            if (dayOfWeek === 0) classes.push('sunday');
+            if (dayOfWeek === 6) classes.push('saturday');
+
+            // Plan dots
+            const dayPlans = this._calPlansCache[dateStr] || [];
+            let dots = '';
+            if (dayPlans.length > 0) {
+                const shown = dayPlans.slice(0, 3);
+                dots = shown.map(p => `<span class="cal-dot${p.completed ? ' completed' : ''}"></span>`).join('');
+            }
+
+            html += `<div class="${classes.join(' ')}" data-date="${dateStr}">
+                <span class="day-number">${d}</span>
+                <div class="cal-day-dots">${dots}</div>
+            </div>`;
+        }
+
+        // Next month filler
+        const totalCells = firstDay + daysInMonth;
+        const remaining = (7 - (totalCells % 7)) % 7;
+        for (let i = 1; i <= remaining; i++) {
+            html += `<div class="cal-day other-month"><span class="day-number">${i}</span><div class="cal-day-dots"></div></div>`;
+        }
+
+        grid.innerHTML = html;
+
+        // Click handlers for days
+        grid.querySelectorAll('.cal-day:not(.other-month)').forEach(el => {
+            el.addEventListener('click', () => {
+                this._calSelectedDate = el.dataset.date;
+                grid.querySelectorAll('.cal-day').forEach(d => d.classList.remove('selected'));
+                el.classList.add('selected');
+                this.renderCalendarTasks();
+            });
+        });
+
+        this.renderCalendarTasks();
+    }
+
+    async fetchMonthPlans(year, month) {
+        // Fetch all plans for the given month
+        const startDate = `${year}-${String(month + 1).padStart(2, '0')}-01`;
+        const endDay = new Date(year, month + 1, 0).getDate();
+        const endDate = `${year}-${String(month + 1).padStart(2, '0')}-${String(endDay).padStart(2, '0')}`;
+
+        try {
+            const res = await this.authFetch(`${API_BASE}/plans?start=${startDate}&end=${endDate}`);
+            if (!res) return;
+            const data = await res.json();
+            if (data.success) {
+                // Group by date
+                const grouped = {};
+                data.data.forEach(p => {
+                    if (!grouped[p.date]) grouped[p.date] = [];
+                    grouped[p.date].push({ ...p, completed: Boolean(p.completed) });
+                });
+                this._calPlansCache = grouped;
+            }
+        } catch (err) {
+            console.log('Calendar fetch error:', err);
+        }
+    }
+
+    renderCalendarTasks() {
+        const dateStr = this._calSelectedDate;
+        const plans = this._calPlansCache[dateStr] || [];
+
+        // Format date for display
+        const [y, m, d] = dateStr.split('-');
+        const dateObj = new Date(parseInt(y), parseInt(m) - 1, parseInt(d));
+        const weekdays = ['일', '월', '화', '수', '목', '금', '토'];
+        document.getElementById('calSelectedDate').textContent =
+            `${parseInt(m)}월 ${parseInt(d)}일 (${weekdays[dateObj.getDay()]})`;
+        document.getElementById('calTaskCount').textContent = `${plans.length}개`;
+
+        const emptyEl = document.getElementById('calTasksEmpty');
+        const listEl = document.getElementById('calTasksList');
+
+        if (plans.length === 0) {
+            emptyEl.style.display = 'flex';
+            listEl.style.display = 'none';
+            return;
+        }
+
+        emptyEl.style.display = 'none';
+        listEl.style.display = 'flex';
+
+        const sorted = [...plans].sort((a, b) => (a.time || '').localeCompare(b.time || ''));
+        listEl.innerHTML = sorted.map(task => `
+            <div class="cal-task-item${task.completed ? ' completed' : ''}" data-id="${task.id}">
+                <span class="cal-task-time">${this.escapeHtml(task.time || '')}</span>
+                <span class="cal-task-title">${this.escapeHtml(task.title)}</span>
+                <button class="cal-task-check${task.completed ? ' checked' : ''}" data-id="${task.id}"></button>
+            </div>
+        `).join('');
+
+        listEl.querySelectorAll('.cal-task-check').forEach(btn => {
+            btn.addEventListener('click', async () => {
+                const id = btn.dataset.id;
+                await this.toggleTaskCompletion(id);
+                // Update cache
+                const cachedPlan = (this._calPlansCache[dateStr] || []).find(p => String(p.id) === String(id));
+                if (cachedPlan) cachedPlan.completed = !cachedPlan.completed;
+                this.renderCalendarTasks();
+                // Re-render dots
+                this.renderCalendar();
+            });
+        });
     }
 }
 
