@@ -1,4 +1,4 @@
-# 삡-플랜 (BBIP Plan)
+# BBIP
 
 자연어 기반 투두리스트 앱 - React Native + Node.js 풀스택
 

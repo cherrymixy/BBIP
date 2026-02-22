@@ -28,7 +28,7 @@ app.use('/api/user', userRouter);
 app.get('/api/health', (req, res) => {
     res.json({
         success: true,
-        message: '삡-플랜 API 서버 정상 동작 중',
+        message: 'BBIP API 서버 정상 동작 중',
         timestamp: new Date().toISOString()
     });
 });
@@ -54,7 +54,7 @@ app.use((err, req, res, next) => {
 app.listen(PORT, () => {
     console.log(`
 ╔════════════════════════════════════════╗
-║     삡-플랜 API 서버 시작               ║
+║     BBIP API 서버 시작               ║
 ║     http://localhost:${PORT}              ║
 ╚════════════════════════════════════════╝
     `);

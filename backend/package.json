@@ -1,7 +1,7 @@
 {
   "name": "bbip-backend",
   "version": "1.0.0",
-  "description": "삡-플랜 투두리스트 백엔드 API",
+  "description": "BBIP 투두리스트 백엔드 API",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",

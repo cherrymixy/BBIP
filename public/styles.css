@@ -97,12 +97,9 @@ body {
 }
 
 .logo-icon {
-    font-size: 22px;
-    background: var(--accent-gradient);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
-    animation: sparkle 3s ease-in-out infinite;
+    width: 28px;
+    height: 28px;
+    object-fit: contain;
 }
 
 @keyframes sparkle {
@@ -1790,14 +1787,11 @@ body {
 }
 
 .auth-logo {
-    font-size: 36px;
-    background: var(--accent-gradient);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
+    width: 56px;
+    height: 56px;
+    object-fit: contain;
     display: block;
-    margin-bottom: 12px;
-    animation: sparkle 3s ease-in-out infinite;
+    margin: 0 auto 12px;
 }
 
 .auth-title {

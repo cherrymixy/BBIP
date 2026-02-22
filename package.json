@@ -1,7 +1,7 @@
 {
     "name": "bbip-plan",
     "version": "1.0.0",
-    "description": "삡-플랜: 자연어 기반 투두리스트",
+    "description": "BBIP: 자연어 기반 투두리스트",
     "private": true,
     "scripts": {
         "dev": "vercel dev",

@@ -1,5 +1,5 @@
 /**
- * 삡-플랜: 자연어 기반 일정 관리 웹앱
+ * BBIP: 자연어 기반 일정 관리 웹앱
  * Main Application JavaScript
  */
 
