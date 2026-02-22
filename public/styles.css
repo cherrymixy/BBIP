@@ -329,9 +329,30 @@ body {
    ==================== */
 .dashboard-grid {
     display: grid;
-    grid-template-columns: 1fr 300px;
-    grid-template-rows: auto 1fr;
+    grid-template-columns: 1fr;
     gap: 24px;
+}
+
+@media (min-width: 1025px) {
+    .dashboard-grid {
+        grid-template-columns: 1fr 300px;
+        grid-template-rows: auto 1fr;
+    }
+
+    .greeting-card {
+        grid-column: 1 / 2;
+        grid-row: 1 / 2;
+    }
+
+    .progress-card {
+        grid-column: 2 / 3;
+        grid-row: 1 / 2;
+    }
+
+    .schedule-card {
+        grid-column: 1 / -1;
+        grid-row: 2 / 3;
+    }
 }
 
 /* ====================
@@ -416,8 +437,6 @@ body {
 
 /* Progress Card */
 .progress-card {
-    grid-column: 2 / 3;
-    grid-row: 1 / 2;
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -512,8 +531,6 @@ body {
 
 /* Schedule Card */
 .schedule-card {
-    grid-column: 1 / -1;
-    grid-row: 2 / 3;
     display: flex;
     flex-direction: column;
     overflow: hidden;
@@ -1672,7 +1689,8 @@ body {
         margin-bottom: 0;
     }
 
-    .tasks-card {
+    .tasks-card,
+    .schedule-card {
         grid-column: 1;
         grid-row: 3;
     }
@@ -1733,7 +1751,8 @@ body {
         flex-direction: column;
     }
 
-    .tasks-card {
+    .tasks-card,
+    .schedule-card {
         grid-column: 1;
         grid-row: 3;
     }
