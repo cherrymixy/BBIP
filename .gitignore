@@ -21,3 +21,9 @@ Thumbs.db
 
 # Gemini
 .gemini/
+
+# Vercel
+.vercel/
+
+# Frontend (separate repo)
+frontend/

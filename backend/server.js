@@ -16,9 +16,11 @@ app.use((req, res, next) => {
 });
 
 // API 라우트
+const authRouter = require('./routes/auth');
 const plansRouter = require('./routes/plans');
 const userRouter = require('./routes/user');
 
+app.use('/api/auth', authRouter);
 app.use('/api/plans', plansRouter);
 app.use('/api/user', userRouter);
 

@@ -14,7 +14,65 @@
 </head>
 
 <body>
-    <div class="app-layout">
+    <!-- Auth Screen -->
+    <div class="auth-screen" id="authScreen">
+        <div class="auth-container">
+            <div class="auth-brand">
+                <span class="auth-logo">✦</span>
+                <h1 class="auth-title">삡-플랜</h1>
+                <p class="auth-tagline">자연어 기반 스마트 투두리스트</p>
+            </div>
+
+            <!-- Login Form -->
+            <form class="auth-form" id="loginForm">
+                <h2 class="auth-form-title">로그인</h2>
+                <div class="auth-error" id="loginError"></div>
+                <div class="auth-field">
+                    <label for="loginEmail">이메일</label>
+                    <input type="email" id="loginEmail" placeholder="이메일을 입력하세요" required autocomplete="email">
+                </div>
+                <div class="auth-field">
+                    <label for="loginPassword">비밀번호</label>
+                    <input type="password" id="loginPassword" placeholder="비밀번호를 입력하세요" required
+                        autocomplete="current-password">
+                </div>
+                <button type="submit" class="auth-submit-btn">로그인</button>
+                <p class="auth-switch">
+                    계정이 없으신가요? <button type="button" id="showRegister" class="auth-link">회원가입</button>
+                </p>
+            </form>
+
+            <!-- Register Form -->
+            <form class="auth-form hidden" id="registerForm">
+                <h2 class="auth-form-title">회원가입</h2>
+                <div class="auth-error" id="registerError"></div>
+                <div class="auth-field">
+                    <label for="registerName">이름</label>
+                    <input type="text" id="registerName" placeholder="이름을 입력하세요" required>
+                </div>
+                <div class="auth-field">
+                    <label for="registerEmail">이메일</label>
+                    <input type="email" id="registerEmail" placeholder="이메일을 입력하세요" required autocomplete="email">
+                </div>
+                <div class="auth-field">
+                    <label for="registerPassword">비밀번호</label>
+                    <input type="password" id="registerPassword" placeholder="4자 이상 입력하세요" required minlength="4"
+                        autocomplete="new-password">
+                </div>
+                <div class="auth-field">
+                    <label for="registerEmoji">프로필 이모지</label>
+                    <input type="text" id="registerEmoji" placeholder="🐔" maxlength="4" value="🐔">
+                </div>
+                <button type="submit" class="auth-submit-btn">회원가입</button>
+                <p class="auth-switch">
+                    이미 계정이 있으신가요? <button type="button" id="showLogin" class="auth-link">로그인</button>
+                </p>
+            </form>
+        </div>
+    </div>
+
+    <!-- App (hidden until logged in) -->
+    <div class="app-layout hidden" id="appLayout">
         <!-- Sidebar -->
         <aside class="sidebar">
             <div class="sidebar-top">
@@ -56,14 +114,22 @@
                 <div class="user-profile">
                     <div class="user-avatar" id="userEmoji">🐔</div>
                     <div class="user-info">
-                        <span class="user-name" id="userName">전승아</span>
+                        <span class="user-name" id="userName">사용자</span>
                         <span class="user-status">온라인</span>
                     </div>
+                    <button class="logout-btn" id="logoutBtn" title="로그아웃">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="2">
+                            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+                            <polyline points="16 17 21 12 16 7"></polyline>
+                            <line x1="21" y1="12" x2="9" y2="12"></line>
+                        </svg>
+                    </button>
                 </div>
             </div>
         </aside>
 
-        <!-- Mobile Header (hamburger) -->
+        <!-- Mobile Header -->
         <button class="mobile-menu-btn" id="mobileMenuBtn">
             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <line x1="3" y1="12" x2="21" y2="12"></line>
@@ -75,7 +141,6 @@
 
         <!-- Main Content -->
         <main class="main-content">
-            <!-- Header -->
             <header class="main-header">
                 <div class="header-left">
                     <h1 class="header-date" id="headerDate">Feb 22.</h1>
@@ -93,25 +158,18 @@
                 </div>
             </header>
 
-            <!-- Dashboard Grid -->
             <div class="dashboard-grid">
-                <!-- Greeting Card -->
                 <section class="card greeting-card">
                     <div class="card-glow"></div>
                     <div class="greeting-content">
                         <p class="greeting-hello">좋은 아침입니다, <span class="emoji" id="greetEmoji">🐔</span> <strong
-                                id="greetName">전승아</strong> 님</p>
+                                id="greetName">사용자</strong> 님</p>
                         <p class="greeting-summary" id="planSummary">
-                            오늘은 <span class="tag tag-time">📅 3시에 회의</span>가 있으며
-                            잠깐의 휴식 후 <span class="tag tag-task">🎬 영상 씬 4 제작 과제</span>가
-                            예정되어 있습니다. 이후에는 저녁을 챙기고
-                            <span class="tag tag-task">🎬 정보 디자인 과제 풀이 고민</span>까지 하고 나면
-                            하루가 마무리 됩니다.
+                            아직 오늘의 계획이 없습니다.<br>상단의 <strong>계획 입력하기</strong> 버튼을 눌러 하루를 시작해보세요! ✨
                         </p>
                     </div>
                 </section>
 
-                <!-- Progress Card -->
                 <section class="card progress-card">
                     <div class="card-header">
                         <h3>오늘의 진행률</h3>
@@ -127,33 +185,24 @@
                         </div>
                     </div>
                     <div class="progress-stats">
-                        <div class="stat">
-                            <span class="stat-number" id="completedCount">0</span>
-                            <span class="stat-label">완료</span>
-                        </div>
+                        <div class="stat"><span class="stat-number" id="completedCount">0</span><span
+                                class="stat-label">완료</span></div>
                         <div class="stat-divider"></div>
-                        <div class="stat">
-                            <span class="stat-number" id="remainingCount">0</span>
-                            <span class="stat-label">남음</span>
-                        </div>
+                        <div class="stat"><span class="stat-number" id="remainingCount">0</span><span
+                                class="stat-label">남음</span></div>
                     </div>
                 </section>
 
-                <!-- Schedule Card -->
                 <section class="card schedule-card">
                     <div class="card-header">
                         <h3>Now <span class="header-sub">and Next</span></h3>
                     </div>
-
                     <div class="schedule-empty" id="scheduleEmpty" style="display: none;">
                         <div class="empty-icon">😊</div>
                         <p>아직 생성된 할 일이 없습니다.</p>
                         <button class="empty-add-btn" id="emptyAddBtn">+ 계획 추가하기</button>
                     </div>
-
-                    <div class="schedule-list" id="scheduleList">
-                        <!-- items rendered by JS -->
-                    </div>
+                    <div class="schedule-list" id="scheduleList"></div>
                 </section>
             </div>
         </main>
