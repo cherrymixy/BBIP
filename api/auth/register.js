@@ -16,6 +16,15 @@ module.exports = async function handler(req, res) {
             return res.status(400).json({ success: false, error: '이름, 이메일, 비밀번호는 필수입니다.' });
         }
 
+        if (name.length > 20) {
+            return res.status(400).json({ success: false, error: '이름은 20자 이내로 입력해주세요.' });
+        }
+
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!emailRegex.test(email)) {
+            return res.status(400).json({ success: false, error: '유효한 이메일 형식을 입력해주세요.' });
+        }
+
         if (password.length < 4) {
             return res.status(400).json({ success: false, error: '비밀번호는 4자 이상이어야 합니다.' });
         }
@@ -45,6 +54,6 @@ module.exports = async function handler(req, res) {
         });
     } catch (error) {
         console.error('Register error:', error);
-        res.status(500).json({ success: false, error: error.message });
+        res.status(500).json({ success: false, error: '서버 오류가 발생했습니다.' });
     }
 };

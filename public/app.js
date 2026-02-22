@@ -87,6 +87,8 @@ class PlanApp {
         this.auth = new AuthManager();
         this.plans = [];
         this.recognition = null;
+        this._listenersAttached = false;
+        this._dateInterval = null;
 
         this.authScreen = document.getElementById('authScreen');
         this.appLayout = document.getElementById('appLayout');
@@ -222,12 +224,16 @@ class PlanApp {
         }
 
         this.updateDateTime();
-        this.setupAppListeners();
-        this.setupSpeechRecognition();
+        if (!this._listenersAttached) {
+            this.setupAppListeners();
+            this.setupSpeechRecognition();
+            this._listenersAttached = true;
+        }
         this.addProgressGradient();
         await this.loadPlans();
 
-        setInterval(() => this.updateDateTime(), 60000);
+        if (this._dateInterval) clearInterval(this._dateInterval);
+        this._dateInterval = setInterval(() => this.updateDateTime(), 60000);
     }
 
     addProgressGradient() {
@@ -339,13 +345,22 @@ class PlanApp {
         document.body.style.overflow = '';
     }
 
-    // ===== API =====
+    // ===== API helpers =====
+    async authFetch(url, options = {}) {
+        const res = await fetch(url, { ...options, headers: this.auth.getHeaders() });
+        if (res.status === 401) {
+            this.auth.clear();
+            this.showAuth();
+            return null;
+        }
+        return res;
+    }
+
     async loadPlans() {
         const today = new Date().toISOString().split('T')[0];
         try {
-            const res = await fetch(`${API_BASE}/plans?date=${today}`, {
-                headers: this.auth.getHeaders()
-            });
+            const res = await this.authFetch(`${API_BASE}/plans?date=${today}`);
+            if (!res) return;
             const data = await res.json();
             if (data.success) this.plans = data.data;
         } catch (err) {
@@ -362,18 +377,25 @@ class PlanApp {
         const planText = this.elements.planTextDisplay.textContent.trim();
         if (!planText) { this.elements.planTextDisplay.focus(); return; }
 
+        const btn = document.getElementById('completePlanBtn');
+        btn.disabled = true;
+        btn.innerHTML = '<span class="btn-sparkle">✦</span> 생성 중...';
+
         const tasks = this.parsePlanText(planText);
 
         try {
-            const res = await fetch(`${API_BASE}/plans/bulk`, {
+            const res = await this.authFetch(`${API_BASE}/plans/bulk`, {
                 method: 'POST',
-                headers: this.auth.getHeaders(),
                 body: JSON.stringify({ plans: tasks })
             });
+            if (!res) return;
             const data = await res.json();
             if (data.success) this.plans = [...this.plans, ...data.data];
         } catch (err) {
             console.log('Bulk create error:', err);
+        } finally {
+            btn.disabled = false;
+            btn.innerHTML = '<span class="btn-sparkle">✦</span> 계획 입력 완료';
         }
 
         this.elements.planTextDisplay.textContent = '';
@@ -390,9 +412,8 @@ class PlanApp {
         task.completed = !task.completed;
 
         try {
-            await fetch(`${API_BASE}/plans/${id}`, {
+            await this.authFetch(`${API_BASE}/plans/${id}`, {
                 method: 'PUT',
-                headers: this.auth.getHeaders(),
                 body: JSON.stringify({ completed: task.completed })
             });
         } catch (err) {

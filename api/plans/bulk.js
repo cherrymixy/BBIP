@@ -18,8 +18,13 @@ module.exports = async function handler(req, res) {
             return res.status(400).json({ success: false, error: 'plans 배열이 필요합니다.' });
         }
 
+        if (plans.length > 20) {
+            return res.status(400).json({ success: false, error: '한 번에 최대 20개까지 생성 가능합니다.' });
+        }
+
         const created = [];
         for (const plan of plans) {
+            if (!plan.title || plan.title.length > 100) continue;
             const id = uuidv4();
             await db.execute({
                 sql: 'INSERT INTO plans (id, user_id, title, time, date) VALUES (?, ?, ?, ?, ?)',
@@ -31,6 +36,6 @@ module.exports = async function handler(req, res) {
         res.status(201).json({ success: true, data: created });
     } catch (error) {
         console.error('Bulk create error:', error);
-        res.status(500).json({ success: false, error: error.message });
+        res.status(500).json({ success: false, error: '서버 오류가 발생했습니다.' });
     }
 };

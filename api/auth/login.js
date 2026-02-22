@@ -1,5 +1,4 @@
 const bcrypt = require('bcryptjs');
-const { v4: uuidv4 } = require('uuid');
 const { getDb, initDb } = require('../../lib/db');
 const { createToken } = require('../../lib/auth');
 
@@ -39,6 +38,6 @@ module.exports = async function handler(req, res) {
         });
     } catch (error) {
         console.error('Login error:', error);
-        res.status(500).json({ success: false, error: error.message });
+        res.status(500).json({ success: false, error: '서버 오류가 발생했습니다.' });
     }
 };

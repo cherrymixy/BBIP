@@ -24,6 +24,6 @@ module.exports = async function handler(req, res) {
         res.json({ success: true, data: result.rows[0] });
     } catch (error) {
         console.error('Me error:', error);
-        res.status(500).json({ success: false, error: error.message });
+        res.status(500).json({ success: false, error: '서버 오류가 발생했습니다.' });
     }
 };

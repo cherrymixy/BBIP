@@ -39,6 +39,10 @@ module.exports = async function handler(req, res) {
                 return res.status(400).json({ success: false, error: 'title과 date는 필수입니다.' });
             }
 
+            if (title.length > 100) {
+                return res.status(400).json({ success: false, error: '제목은 100자 이내로 입력해주세요.' });
+            }
+
             const id = uuidv4();
             await db.execute({
                 sql: 'INSERT INTO plans (id, user_id, title, time, date) VALUES (?, ?, ?, ?, ?)',
@@ -54,6 +58,6 @@ module.exports = async function handler(req, res) {
         res.status(405).json({ success: false, error: 'Method not allowed' });
     } catch (error) {
         console.error('Plans error:', error);
-        res.status(500).json({ success: false, error: error.message });
+        res.status(500).json({ success: false, error: '서버 오류가 발생했습니다.' });
     }
 };
