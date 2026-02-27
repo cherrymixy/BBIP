@@ -345,10 +345,10 @@ body {
     align-items: center;
     gap: 10px;
     padding: 14px 28px;
-    background: transparent;
-    border: 1.5px solid rgba(255, 255, 255, 0.15);
+    background: #ffffff;
+    border: none;
     border-radius: 50px;
-    color: var(--text-primary);
+    color: #111;
     font-size: 15px;
     font-weight: 600;
     cursor: pointer;
@@ -358,8 +358,7 @@ body {
 }
 
 .add-plan-btn:hover {
-    border-color: rgba(255, 255, 255, 0.3);
-    background: rgba(255, 255, 255, 0.04);
+    background: rgba(255, 255, 255, 0.85);
     transform: translateY(-1px);
 }
 
@@ -383,7 +382,7 @@ body {
 .schedule-header {
     display: flex;
     align-items: baseline;
-    gap: 12px;
+    justify-content: space-between;
     margin-bottom: 20px;
 }
 
