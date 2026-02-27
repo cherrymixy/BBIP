@@ -234,16 +234,16 @@
             <!-- Stats Page -->
             <div id="pageStats" class="page-content">
                 <div class="stats-container">
-                    <!-- Year Navigation -->
+                    <!-- Month Navigation -->
                     <div class="stats-year-nav">
-                        <button class="stats-year-btn" id="statYearPrev">
+                        <button class="stats-year-btn" id="statMonthPrev">
                             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
                                 stroke-width="2">
                                 <path d="M15 18l-6-6 6-6" />
                             </svg>
                         </button>
-                        <span class="stats-year-title" id="statYearTitle">2026년</span>
-                        <button class="stats-year-btn" id="statYearNext">
+                        <span class="stats-year-title" id="statMonthTitle">2026년 2월</span>
+                        <button class="stats-year-btn" id="statMonthNext">
                             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
                                 stroke-width="2">
                                 <path d="M9 18l6-6-6-6" />
@@ -251,27 +251,27 @@
                         </button>
                     </div>
 
-                    <!-- Monthly Bar Chart -->
+                    <!-- Weekly Bar Chart -->
                     <div class="card stats-monthly-card">
                         <div class="stats-monthly-header">
-                            <span class="stats-monthly-label">월 별 달성량</span>
+                            <span class="stats-monthly-label">주 별 달성량</span>
                         </div>
                         <div class="stats-monthly-chart-wrap">
                             <div class="stats-y-axis" id="statsYAxis"></div>
-                            <div class="stats-monthly-chart" id="statsMonthlyChart"></div>
+                            <div class="stats-monthly-chart" id="statsWeeklyChart"></div>
                         </div>
-                        <div class="stats-month-labels" id="statsMonthLabels"></div>
+                        <div class="stats-month-labels" id="statsWeekLabels"></div>
                     </div>
 
                     <!-- Two Summary Cards -->
                     <div class="stats-dual-cards">
                         <div class="card stats-big-card stats-big-neutral">
                             <div class="stats-big-value" id="statTotalPlans">0</div>
-                            <div class="stats-big-label" id="statTotalYear">2026 전체 계획</div>
+                            <div class="stats-big-label" id="statTotalLabel">이번 달 전체 계획</div>
                         </div>
                         <div class="card stats-big-card stats-big-accent">
                             <div class="stats-big-value" id="statCompleted">0</div>
-                            <div class="stats-big-label" id="statCompletedYear">2026 완료</div>
+                            <div class="stats-big-label" id="statCompletedLabel">이번 달 완료</div>
                         </div>
                     </div>
 

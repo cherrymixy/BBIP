@@ -1208,14 +1208,18 @@ class PlanApp {
     }
     // ===== Stats =====
     initStats() {
-        this._statsYear = new Date().getFullYear();
+        const now = new Date();
+        this._statsYear = now.getFullYear();
+        this._statsMonth = now.getMonth(); // 0-indexed
 
-        document.getElementById('statYearPrev').addEventListener('click', () => {
-            this._statsYear--;
+        document.getElementById('statMonthPrev').addEventListener('click', () => {
+            this._statsMonth--;
+            if (this._statsMonth < 0) { this._statsMonth = 11; this._statsYear--; }
             this.loadStats();
         });
-        document.getElementById('statYearNext').addEventListener('click', () => {
-            this._statsYear++;
+        document.getElementById('statMonthNext').addEventListener('click', () => {
+            this._statsMonth++;
+            if (this._statsMonth > 11) { this._statsMonth = 0; this._statsYear++; }
             this.loadStats();
         });
     }
@@ -1227,39 +1231,43 @@ class PlanApp {
         }
 
         const year = this._statsYear;
-        document.getElementById('statYearTitle').textContent = `${year}\ub144`;
-        document.getElementById('statTotalYear').textContent = `${year} \uc804\uccb4 \uacc4\ud68d`;
-        document.getElementById('statCompletedYear').textContent = `${year} \uc644\ub8cc`;
+        const month = this._statsMonth;
+        const monthNames = ['1월', '2월', '3월', '4월', '5월', '6월', '7월', '8월', '9월', '10월', '11월', '12월'];
 
-        // Fetch full year
-        const startDate = `${year}-01-01`;
-        const endDate = `${year}-12-31`;
+        document.getElementById('statMonthTitle').textContent = `${year}년 ${monthNames[month]}`;
+        document.getElementById('statTotalLabel').textContent = `${monthNames[month]} 전체 계획`;
+        document.getElementById('statCompletedLabel').textContent = `${monthNames[month]} 완료`;
+
+        // Fetch month data
+        const mm = String(month + 1).padStart(2, '0');
+        const daysInMonth = new Date(year, month + 1, 0).getDate();
+        const startDate = `${year}-${mm}-01`;
+        const endDate = `${year}-${mm}-${String(daysInMonth).padStart(2, '0')}`;
 
         let allPlans = [];
         try {
             const res = await this.authFetch(`${API_BASE}/plans?start=${startDate}&end=${endDate}`);
-            if (!res) return;
-            const data = await res.json();
-            if (data.success) allPlans = data.data.map(p => ({ ...p, completed: Boolean(p.completed) }));
+            if (res) {
+                const data = await res.json();
+                if (data.success) allPlans = data.data.map(p => ({ ...p, completed: Boolean(p.completed) }));
+            }
         } catch (err) {
             console.log('Stats fetch error:', err);
         }
 
-        // Group by month
-        const monthly = Array.from({ length: 12 }, () => ({ total: 0, completed: 0 }));
+        // Group by week (1주, 2주, 3주, 4주, 5주)
+        const weekCount = Math.ceil(daysInMonth / 7);
+        const weekly = Array.from({ length: weekCount }, () => ({ total: 0, completed: 0 }));
         allPlans.forEach(p => {
-            const m = parseInt(p.date.split('-')[1]) - 1;
-            if (m >= 0 && m < 12) {
-                monthly[m].total++;
-                if (p.completed) monthly[m].completed++;
-            }
+            const day = parseInt(p.date.split('-')[2]);
+            const weekIdx = Math.min(Math.floor((day - 1) / 7), weekCount - 1);
+            weekly[weekIdx].total++;
+            if (p.completed) weekly[weekIdx].completed++;
         });
 
         // Summary cards
         const total = allPlans.length;
         const completed = allPlans.filter(p => p.completed).length;
-        const rate = total > 0 ? Math.round((completed / total) * 100) : 0;
-
         document.getElementById('statTotalPlans').textContent = total;
         document.getElementById('statCompleted').textContent = completed;
 
@@ -1275,19 +1283,18 @@ class PlanApp {
         const weekRate = weekTotal > 0 ? Math.round((weekCompleted / weekTotal) * 100) : 0;
 
         document.getElementById('statAvgRate').textContent = `${weekRate}%`;
-        document.getElementById('statInsightBarLabel').textContent = `${weekCompleted}\uac1c \uc644\ub8cc`;
+        document.getElementById('statInsightBarLabel').textContent = `${weekCompleted}개 완료`;
 
-        // Animate bar
         requestAnimationFrame(() => {
             document.getElementById('statInsightBarFill').style.width = `${Math.max(weekRate, 2)}%`;
         });
 
         // Streak
         const streak = this.calcStreak(allPlans, new Date());
-        document.getElementById('statStreak').textContent = `${streak}\uc77c`;
+        document.getElementById('statStreak').textContent = `${streak}일`;
 
-        // Monthly bar chart
-        this.renderMonthlyChart(monthly, year);
+        // Weekly bar chart
+        this.renderWeeklyChart(weekly, year, month);
     }
 
     calcStreak(plans, now) {
@@ -1313,18 +1320,21 @@ class PlanApp {
         return streak;
     }
 
-    renderMonthlyChart(monthly, year) {
-        const chart = document.getElementById('statsMonthlyChart');
+    renderWeeklyChart(weekly, year, month) {
+        const chart = document.getElementById('statsWeeklyChart');
         const yAxis = document.getElementById('statsYAxis');
-        const labels = document.getElementById('statsMonthLabels');
-        const currentMonth = new Date().getFullYear() === year ? new Date().getMonth() : -1;
+        const labels = document.getElementById('statsWeekLabels');
+
+        const now = new Date();
+        const currentWeekIdx = (now.getFullYear() === year && now.getMonth() === month)
+            ? Math.min(Math.floor((now.getDate() - 1) / 7), weekly.length - 1) : -1;
 
         // Find max for y-axis
-        const maxVal = Math.max(...monthly.map(m => m.completed), 1);
+        const maxVal = Math.max(...weekly.map(w => w.completed), 1);
         const yMax = Math.ceil(maxVal / 2) * 2 || 2;
 
         // Y-axis labels
-        const steps = 5;
+        const steps = 4;
         yAxis.innerHTML = '';
         for (let i = 0; i <= steps; i++) {
             const val = Math.round((yMax / steps) * i);
@@ -1332,19 +1342,18 @@ class PlanApp {
         }
 
         // Bars
-        chart.innerHTML = monthly.map((m, i) => {
-            const h = yMax > 0 ? (m.completed / yMax) * 100 : 0;
-            const isCurrent = i === currentMonth;
-            const hasData = m.total > 0;
+        chart.innerHTML = weekly.map((w, i) => {
+            const h = yMax > 0 ? (w.completed / yMax) * 100 : 0;
+            const isCurrent = i === currentWeekIdx;
+            const hasData = w.total > 0;
             return `<div class="stats-m-bar-wrap">
                 <div class="stats-m-bar${isCurrent ? ' current' : ''}${hasData ? ' has-data' : ''}" style="height: 0%" data-h="${h}"></div>
             </div>`;
         }).join('');
 
-        // Month labels
-        const monthNames = ['1\uc6d4', '2\uc6d4', '3\uc6d4', '4\uc6d4', '5\uc6d4', '6\uc6d4', '7\uc6d4', '8\uc6d4', '9\uc6d4', '10\uc6d4', '11\uc6d4', '12\uc6d4'];
-        labels.innerHTML = monthNames.map((name, i) =>
-            `<span class="stats-month-lbl${i === currentMonth ? ' current' : ''}">${name}</span>`
+        // Week labels
+        labels.innerHTML = weekly.map((_, i) =>
+            `<span class="stats-month-lbl${i === currentWeekIdx ? ' current' : ''}">${i + 1}주</span>`
         ).join('');
 
         // Animate bars
