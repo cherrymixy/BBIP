@@ -431,25 +431,50 @@ body {
     border-color: var(--accent-primary);
 }
 
-.drag-handle {
+.edit-item {
+    cursor: pointer;
+}
+
+.edit-item:hover {
+    background: rgba(255, 255, 255, 0.08);
+}
+
+.reorder-btns {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    flex-shrink: 0;
+    margin-right: 8px;
+}
+
+.reorder-btn {
     display: flex;
     align-items: center;
     justify-content: center;
     width: 28px;
-    height: 28px;
-    color: var(--text-tertiary);
-    cursor: grab;
-    flex-shrink: 0;
-    opacity: 0.5;
-    transition: opacity var(--transition-fast);
+    height: 22px;
+    background: var(--bg-elevated);
+    border: none;
+    border-radius: 6px;
+    color: var(--text-secondary);
+    cursor: pointer;
+    transition: all var(--transition-fast);
+    padding: 0;
 }
 
-.drag-handle:hover {
-    opacity: 1;
+.reorder-btn:hover:not(.disabled) {
+    background: var(--accent-primary);
+    color: #fff;
+    transform: scale(1.1);
 }
 
-.drag-handle:active {
-    cursor: grabbing;
+.reorder-btn:active:not(.disabled) {
+    transform: scale(0.95);
+}
+
+.reorder-btn.disabled {
+    opacity: 0.2;
+    cursor: default;
 }
 
 .edit-time {

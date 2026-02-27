@@ -509,53 +509,30 @@ class PlanApp {
         this._editingTaskId = null;
     }
 
-    setupDragAndDrop() {
-        const items = this.elements.scheduleList.querySelectorAll('.schedule-item[draggable="true"]');
-        let draggedItem = null;
+    reorderTask(taskId, direction) {
+        const sorted = [...this.plans].sort((a, b) => (a.time || '').localeCompare(b.time || ''));
+        const idx = sorted.findIndex(p => String(p.id) === String(taskId));
+        if (idx === -1) return;
+        const newIdx = idx + direction;
+        if (newIdx < 0 || newIdx >= sorted.length) return;
 
-        items.forEach(item => {
-            item.addEventListener('dragstart', (e) => {
-                draggedItem = item;
-                item.classList.add('dragging');
-                e.dataTransfer.effectAllowed = 'move';
-                e.dataTransfer.setData('text/plain', item.dataset.id);
-            });
+        // Swap times between the two tasks
+        const tempTime = sorted[idx].time;
+        sorted[idx].time = sorted[newIdx].time;
+        sorted[newIdx].time = tempTime;
 
-            item.addEventListener('dragend', () => {
-                item.classList.remove('dragging');
-                items.forEach(i => i.classList.remove('drag-over'));
-                draggedItem = null;
-            });
+        // Save to server
+        this.authFetch(`${API_BASE}/plans/${sorted[idx].id}`, {
+            method: 'PUT',
+            body: JSON.stringify({ time: sorted[idx].time })
+        }).catch(err => console.log('Reorder error:', err));
+        this.authFetch(`${API_BASE}/plans/${sorted[newIdx].id}`, {
+            method: 'PUT',
+            body: JSON.stringify({ time: sorted[newIdx].time })
+        }).catch(err => console.log('Reorder error:', err));
 
-            item.addEventListener('dragover', (e) => {
-                e.preventDefault();
-                e.dataTransfer.dropEffect = 'move';
-                if (item !== draggedItem) {
-                    item.classList.add('drag-over');
-                }
-            });
-
-            item.addEventListener('dragleave', () => {
-                item.classList.remove('drag-over');
-            });
-
-            item.addEventListener('drop', (e) => {
-                e.preventDefault();
-                item.classList.remove('drag-over');
-                if (!draggedItem || draggedItem === item) return;
-
-                const fromId = draggedItem.dataset.id;
-                const toId = item.dataset.id;
-                const fromIdx = this.plans.findIndex(p => String(p.id) === String(fromId));
-                const toIdx = this.plans.findIndex(p => String(p.id) === String(toId));
-
-                if (fromIdx !== -1 && toIdx !== -1) {
-                    const [moved] = this.plans.splice(fromIdx, 1);
-                    this.plans.splice(toIdx, 0, moved);
-                    this.renderSchedule();
-                }
-            });
-        });
+        this.renderSchedule();
+        this.updateGreetingSummary();
     }
 
     // ===== Rendering =====
@@ -577,15 +554,20 @@ class PlanApp {
         const sorted = [...this.plans].sort((a, b) => (a.time || '').localeCompare(b.time || ''));
 
         if (this.isEditMode) {
-            // Edit mode: drag handles + tap to change time
-            this.elements.scheduleList.innerHTML = sorted.map(task => `
-                <div class="schedule-item${task.completed ? ' completed' : ''}" data-id="${task.id}" draggable="true">
-                    <div class="drag-handle">
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <line x1="3" y1="6" x2="21" y2="6"></line>
-                            <line x1="3" y1="12" x2="21" y2="12"></line>
-                            <line x1="3" y1="18" x2="21" y2="18"></line>
-                        </svg>
+            // Edit mode: arrow buttons for reorder + tap to change time
+            this.elements.scheduleList.innerHTML = sorted.map((task, idx) => `
+                <div class="schedule-item edit-item${task.completed ? ' completed' : ''}" data-id="${task.id}">
+                    <div class="reorder-btns">
+                        <button class="reorder-btn up-btn${idx === 0 ? ' disabled' : ''}" data-id="${task.id}" data-dir="-1" ${idx === 0 ? 'disabled' : ''}>
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                                <polyline points="18 15 12 9 6 15"></polyline>
+                            </svg>
+                        </button>
+                        <button class="reorder-btn down-btn${idx === sorted.length - 1 ? ' disabled' : ''}" data-id="${task.id}" data-dir="1" ${idx === sorted.length - 1 ? 'disabled' : ''}>
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                                <polyline points="6 9 12 15 18 9"></polyline>
+                            </svg>
+                        </button>
                     </div>
                     <div class="item-content">
                         <div class="schedule-item-time edit-time">${this.escapeHtml(task.time || '시간 없음')}</div>
@@ -600,10 +582,17 @@ class PlanApp {
                 </div>
             `).join('');
 
-            // Drag-and-drop
-            this.setupDragAndDrop();
+            // Reorder buttons
+            this.elements.scheduleList.querySelectorAll('.reorder-btn:not(.disabled)').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    const id = btn.dataset.id;
+                    const dir = parseInt(btn.dataset.dir);
+                    this.reorderTask(id, dir);
+                });
+            });
 
-            // Tap to change time
+            // Tap to change time (clock icon)
             this.elements.scheduleList.querySelectorAll('.time-edit-icon').forEach(btn => {
                 btn.addEventListener('click', (e) => {
                     e.stopPropagation();
@@ -611,10 +600,10 @@ class PlanApp {
                 });
             });
 
-            // Also handle tap on the item itself
-            this.elements.scheduleList.querySelectorAll('.schedule-item').forEach(item => {
-                item.addEventListener('click', (e) => {
-                    if (e.target.closest('.time-edit-icon') || e.target.closest('.drag-handle')) return;
+            // Tap on card content to change time
+            this.elements.scheduleList.querySelectorAll('.item-content').forEach(content => {
+                content.addEventListener('click', (e) => {
+                    const item = content.closest('.schedule-item');
                     this.openTimeChangeModal(item.dataset.id);
                 });
             });
