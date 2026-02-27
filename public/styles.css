@@ -1031,7 +1031,6 @@ body {
     display: grid;
     grid-template-columns: 1fr 340px;
     gap: 20px;
-    height: calc(100vh - 160px);
 }
 
 .calendar-card {
