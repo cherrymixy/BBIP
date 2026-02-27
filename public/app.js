@@ -431,27 +431,35 @@ class PlanApp {
 
     // ===== API helpers =====
     async authFetch(url, options = {}) {
-        const res = await fetch(url, { ...options, headers: this.auth.getHeaders() });
-        if (res.status === 401) {
-            this.auth.clear();
-            this.showAuth();
+        try {
+            const res = await fetch(url, { ...options, headers: this.auth.getHeaders() });
+            if (res.status === 401) {
+                this.auth.clear();
+                this.showAuth();
+                return null;
+            }
+            return res;
+        } catch (err) {
+            console.log('Network error:', err);
             return null;
         }
-        return res;
     }
 
     async loadPlans() {
         const today = new Date().toISOString().split('T')[0];
         try {
             const res = await this.authFetch(`${API_BASE}/plans?date=${today}`);
-            if (!res) return;
-            const data = await res.json();
-            if (data.success) this.plans = data.data;
+            if (res) {
+                const data = await res.json();
+                if (data.success && Array.isArray(data.data)) {
+                    this.plans = data.data;
+                }
+            }
         } catch (err) {
             console.log('Plans API error:', err);
-            this.plans = [];
         }
 
+        // 항상 렌더링 실행
         this.renderSchedule();
         this.updateProgress();
         this.updateGreetingSummary();
