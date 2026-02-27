@@ -89,6 +89,8 @@ class PlanApp {
         this.recognition = null;
         this._listenersAttached = false;
         this._dateInterval = null;
+        this.isEditMode = false;
+        this._editingTaskId = null;
 
         this.authScreen = document.getElementById('authScreen');
         this.appLayout = document.getElementById('appLayout');
@@ -212,6 +214,12 @@ class PlanApp {
             mobileOverlay: document.getElementById('mobileOverlay'),
             userName: document.getElementById('userName'),
             userEmoji: document.getElementById('userEmoji'),
+            editModeBtn: document.getElementById('editModeBtn'),
+            timeChangeModal: document.getElementById('timeChangeModal'),
+            timeChangeInput: document.getElementById('timeChangeInput'),
+            timeChangeTaskName: document.getElementById('timeChangeTaskName'),
+            confirmTimeChange: document.getElementById('confirmTimeChange'),
+            closeTimeModal: document.getElementById('closeTimeModal'),
         };
 
         // Set user info
@@ -333,7 +341,35 @@ class PlanApp {
 
         // Escape key
         document.addEventListener('keydown', (e) => {
-            if (e.key === 'Escape') this.closeModal();
+            if (e.key === 'Escape') {
+                this.closeModal();
+                this.closeTimeChangeModal();
+            }
+        });
+
+        // Edit mode toggle
+        this.elements.editModeBtn.addEventListener('click', () => this.toggleEditMode());
+
+        // Time change modal
+        this.elements.closeTimeModal.addEventListener('click', () => this.closeTimeChangeModal());
+        this.elements.timeChangeModal.addEventListener('click', (e) => {
+            if (e.target === this.elements.timeChangeModal) this.closeTimeChangeModal();
+        });
+        this.elements.confirmTimeChange.addEventListener('click', () => {
+            if (this._editingTaskId && this.elements.timeChangeInput.value) {
+                const task = this.plans.find(p => String(p.id) === String(this._editingTaskId));
+                if (task) {
+                    task.time = this.elements.timeChangeInput.value;
+                    // Save to server
+                    this.authFetch(`${API_BASE}/plans/${this._editingTaskId}`, {
+                        method: 'PUT',
+                        body: JSON.stringify({ time: task.time })
+                    }).catch(err => console.log('Time update error:', err));
+                }
+            }
+            this.closeTimeChangeModal();
+            this.renderSchedule();
+            this.updateGreetingSummary();
         });
     }
 
@@ -450,40 +486,162 @@ class PlanApp {
         this.updateProgress();
     }
 
+    // ===== Edit Mode =====
+    toggleEditMode() {
+        this.isEditMode = !this.isEditMode;
+        this.renderSchedule();
+    }
+
+    openTimeChangeModal(taskId) {
+        const task = this.plans.find(p => String(p.id) === String(taskId));
+        if (!task) return;
+        this._editingTaskId = taskId;
+        this.elements.timeChangeTaskName.textContent = task.title;
+        this.elements.timeChangeInput.value = task.time || '';
+        this.elements.timeChangeModal.classList.add('active');
+        document.body.style.overflow = 'hidden';
+        setTimeout(() => this.elements.timeChangeInput.focus(), 300);
+    }
+
+    closeTimeChangeModal() {
+        this.elements.timeChangeModal.classList.remove('active');
+        document.body.style.overflow = '';
+        this._editingTaskId = null;
+    }
+
+    setupDragAndDrop() {
+        const items = this.elements.scheduleList.querySelectorAll('.schedule-item[draggable="true"]');
+        let draggedItem = null;
+
+        items.forEach(item => {
+            item.addEventListener('dragstart', (e) => {
+                draggedItem = item;
+                item.classList.add('dragging');
+                e.dataTransfer.effectAllowed = 'move';
+                e.dataTransfer.setData('text/plain', item.dataset.id);
+            });
+
+            item.addEventListener('dragend', () => {
+                item.classList.remove('dragging');
+                items.forEach(i => i.classList.remove('drag-over'));
+                draggedItem = null;
+            });
+
+            item.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                e.dataTransfer.dropEffect = 'move';
+                if (item !== draggedItem) {
+                    item.classList.add('drag-over');
+                }
+            });
+
+            item.addEventListener('dragleave', () => {
+                item.classList.remove('drag-over');
+            });
+
+            item.addEventListener('drop', (e) => {
+                e.preventDefault();
+                item.classList.remove('drag-over');
+                if (!draggedItem || draggedItem === item) return;
+
+                const fromId = draggedItem.dataset.id;
+                const toId = item.dataset.id;
+                const fromIdx = this.plans.findIndex(p => String(p.id) === String(fromId));
+                const toIdx = this.plans.findIndex(p => String(p.id) === String(toId));
+
+                if (fromIdx !== -1 && toIdx !== -1) {
+                    const [moved] = this.plans.splice(fromIdx, 1);
+                    this.plans.splice(toIdx, 0, moved);
+                    this.renderSchedule();
+                }
+            });
+        });
+    }
+
     // ===== Rendering =====
     renderSchedule() {
         if (this.plans.length === 0) {
             this.elements.scheduleEmpty.style.display = 'flex';
             this.elements.scheduleList.style.display = 'none';
+            this.elements.editModeBtn.style.display = 'none';
             return;
         }
 
         this.elements.scheduleEmpty.style.display = 'none';
         this.elements.scheduleList.style.display = 'grid';
+        this.elements.editModeBtn.style.display = 'inline-flex';
+
+        // Update edit button text
+        this.elements.editModeBtn.querySelector('span').textContent = this.isEditMode ? '완료' : '수정';
 
         const sorted = [...this.plans].sort((a, b) => (a.time || '').localeCompare(b.time || ''));
 
-        this.elements.scheduleList.innerHTML = sorted.map(task => `
-            <div class="schedule-item${task.completed ? ' completed' : ''}" data-id="${task.id}">
-                <div class="item-content">
-                    <div class="schedule-item-time">${this.escapeHtml(task.time || '')}</div>
-                    <div class="schedule-item-title">${this.escapeHtml(task.title)}</div>
+        if (this.isEditMode) {
+            // Edit mode: drag handles + tap to change time
+            this.elements.scheduleList.innerHTML = sorted.map(task => `
+                <div class="schedule-item${task.completed ? ' completed' : ''}" data-id="${task.id}" draggable="true">
+                    <div class="drag-handle">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <line x1="3" y1="6" x2="21" y2="6"></line>
+                            <line x1="3" y1="12" x2="21" y2="12"></line>
+                            <line x1="3" y1="18" x2="21" y2="18"></line>
+                        </svg>
+                    </div>
+                    <div class="item-content">
+                        <div class="schedule-item-time edit-time">${this.escapeHtml(task.time || '시간 없음')}</div>
+                        <div class="schedule-item-title">${this.escapeHtml(task.title)}</div>
+                    </div>
+                    <button class="time-edit-icon" data-id="${task.id}">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <circle cx="12" cy="12" r="10"></circle>
+                            <polyline points="12 6 12 12 16 14"></polyline>
+                        </svg>
+                    </button>
                 </div>
-                <button class="check-btn${task.completed ? ' checked' : ''}">
-                    <span class="check-icon">
-                        <svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"></polyline></svg>
-                    </span>
-                </button>
-            </div>
-        `).join('');
+            `).join('');
 
-        this.elements.scheduleList.querySelectorAll('.check-btn').forEach(btn => {
-            btn.addEventListener('click', (e) => {
-                e.stopPropagation();
-                const id = btn.closest('.schedule-item').dataset.id;
-                this.toggleTaskCompletion(id);
+            // Drag-and-drop
+            this.setupDragAndDrop();
+
+            // Tap to change time
+            this.elements.scheduleList.querySelectorAll('.time-edit-icon').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    this.openTimeChangeModal(btn.dataset.id);
+                });
             });
-        });
+
+            // Also handle tap on the item itself
+            this.elements.scheduleList.querySelectorAll('.schedule-item').forEach(item => {
+                item.addEventListener('click', (e) => {
+                    if (e.target.closest('.time-edit-icon') || e.target.closest('.drag-handle')) return;
+                    this.openTimeChangeModal(item.dataset.id);
+                });
+            });
+        } else {
+            // Normal mode
+            this.elements.scheduleList.innerHTML = sorted.map(task => `
+                <div class="schedule-item${task.completed ? ' completed' : ''}" data-id="${task.id}">
+                    <div class="item-content">
+                        <div class="schedule-item-time">${this.escapeHtml(task.time || '')}</div>
+                        <div class="schedule-item-title">${this.escapeHtml(task.title)}</div>
+                    </div>
+                    <button class="check-btn${task.completed ? ' checked' : ''}">
+                        <span class="check-icon">
+                            <svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                        </span>
+                    </button>
+                </div>
+            `).join('');
+
+            this.elements.scheduleList.querySelectorAll('.check-btn').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    const id = btn.closest('.schedule-item').dataset.id;
+                    this.toggleTaskCompletion(id);
+                });
+            });
+        }
     }
 
     updateProgress() {

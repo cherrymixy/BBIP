@@ -403,6 +403,79 @@ body {
     letter-spacing: -0.2px;
 }
 
+.schedule-header-right {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.edit-mode-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 6px 14px;
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: 20px;
+    color: var(--text-secondary);
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all var(--transition-fast);
+    font-family: var(--font-family);
+}
+
+.edit-mode-btn:hover {
+    background: var(--bg-elevated);
+    color: var(--text-primary);
+    border-color: var(--accent-primary);
+}
+
+.drag-handle {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    color: var(--text-tertiary);
+    cursor: grab;
+    flex-shrink: 0;
+    opacity: 0.5;
+    transition: opacity var(--transition-fast);
+}
+
+.drag-handle:hover {
+    opacity: 1;
+}
+
+.drag-handle:active {
+    cursor: grabbing;
+}
+
+.edit-time {
+    color: var(--accent-secondary) !important;
+}
+
+.time-edit-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    background: rgba(255, 107, 91, 0.12);
+    border: none;
+    border-radius: 50%;
+    color: var(--accent-primary);
+    cursor: pointer;
+    flex-shrink: 0;
+    transition: all var(--transition-fast);
+}
+
+.time-edit-icon:hover {
+    background: rgba(255, 107, 91, 0.25);
+    transform: scale(1.08);
+}
+
 /* ====================
    Cards
    ==================== */
@@ -572,32 +645,38 @@ body {
 }
 
 .schedule-list {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    display: flex;
+    flex-direction: column;
     gap: 12px;
-    overflow-y: auto;
-    flex: 1;
-    padding-right: 4px;
 }
 
 /* Schedule Items */
 .schedule-item {
-    background: var(--bg-card);
-    border: 1px solid var(--border-color);
-    border-radius: var(--border-radius-md);
-    padding: 18px 20px;
+    background: rgba(255, 255, 255, 0.05);
+    border: none;
+    border-radius: 20px;
+    padding: 20px 24px;
     display: flex;
     align-items: center;
     justify-content: space-between;
     gap: 16px;
     transition: all var(--transition-fast);
-    cursor: default;
+    cursor: grab;
+    user-select: none;
 }
 
-.schedule-item:hover {
-    background: var(--bg-card-hover);
-    border-color: rgba(255, 255, 255, 0.1);
-    transform: translateY(-1px);
+.schedule-item:active {
+    cursor: grabbing;
+}
+
+.schedule-item.dragging {
+    opacity: 0.4;
+    transform: scale(0.97);
+}
+
+.schedule-item.drag-over {
+    border-top: 2px solid var(--accent-primary);
+    padding-top: 18px;
 }
 
 .schedule-item.completed {
@@ -615,15 +694,15 @@ body {
 }
 
 .schedule-item-time {
-    font-size: 12px;
-    color: var(--accent-primary);
-    font-weight: 500;
+    font-size: 13px;
+    color: var(--text-secondary);
+    font-weight: 400;
     margin-bottom: 6px;
-    letter-spacing: 0.3px;
+    letter-spacing: 0.2px;
 }
 
 .schedule-item-title {
-    font-size: 15px;
+    font-size: 16px;
     font-weight: 600;
     line-height: 1.4;
     color: var(--text-primary);
@@ -707,6 +786,35 @@ body {
 .modal-backdrop.active {
     opacity: 1;
     visibility: visible;
+}
+
+/* Time Change Modal */
+.time-change-panel {
+    max-width: 400px;
+}
+
+.time-input-group {
+    display: flex;
+    justify-content: center;
+    padding: 8px 0;
+}
+
+.time-input-field {
+    width: 100%;
+    padding: 16px 20px;
+    background: var(--bg-card);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: var(--border-radius-md);
+    color: var(--text-primary);
+    font-size: 24px;
+    font-family: var(--font-family);
+    outline: none;
+    text-align: center;
+    transition: border-color var(--transition-fast);
+}
+
+.time-input-field:focus {
+    border-color: var(--accent-primary);
 }
 
 .modal-panel {
