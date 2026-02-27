@@ -220,6 +220,16 @@ class PlanApp {
             timeChangeTaskName: document.getElementById('timeChangeTaskName'),
             confirmTimeChange: document.getElementById('confirmTimeChange'),
             closeTimeModal: document.getElementById('closeTimeModal'),
+            renameModal: document.getElementById('renameModal'),
+            renameInput: document.getElementById('renameInput'),
+            renameCurrentTime: document.getElementById('renameCurrentTime'),
+            confirmRename: document.getElementById('confirmRename'),
+            closeRenameModal: document.getElementById('closeRenameModal'),
+            deleteModal: document.getElementById('deleteModal'),
+            deleteTaskName: document.getElementById('deleteTaskName'),
+            confirmDelete: document.getElementById('confirmDelete'),
+            cancelDelete: document.getElementById('cancelDelete'),
+            closeDeleteModal: document.getElementById('closeDeleteModal'),
         };
 
         // Set user info
@@ -344,6 +354,8 @@ class PlanApp {
             if (e.key === 'Escape') {
                 this.closeModal();
                 this.closeTimeChangeModal();
+                this.closeRenameModal();
+                this.closeDeleteModal();
             }
         });
 
@@ -360,7 +372,6 @@ class PlanApp {
                 const task = this.plans.find(p => String(p.id) === String(this._editingTaskId));
                 if (task) {
                     task.time = this.elements.timeChangeInput.value;
-                    // Save to server
                     this.authFetch(`${API_BASE}/plans/${this._editingTaskId}`, {
                         method: 'PUT',
                         body: JSON.stringify({ time: task.time })
@@ -370,6 +381,40 @@ class PlanApp {
             this.closeTimeChangeModal();
             this.renderSchedule();
             this.updateGreetingSummary();
+        });
+
+        // Rename modal
+        this.elements.closeRenameModal.addEventListener('click', () => this.closeRenameModal());
+        this.elements.renameModal.addEventListener('click', (e) => {
+            if (e.target === this.elements.renameModal) this.closeRenameModal();
+        });
+        this.elements.confirmRename.addEventListener('click', () => {
+            if (this._renamingTaskId && this.elements.renameInput.value.trim()) {
+                const task = this.plans.find(p => String(p.id) === String(this._renamingTaskId));
+                if (task) {
+                    task.title = this.elements.renameInput.value.trim();
+                    this.authFetch(`${API_BASE}/plans/${this._renamingTaskId}`, {
+                        method: 'PUT',
+                        body: JSON.stringify({ title: task.title })
+                    }).catch(err => console.log('Rename error:', err));
+                }
+            }
+            this.closeRenameModal();
+            this.renderSchedule();
+            this.updateGreetingSummary();
+        });
+        this.elements.renameInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') this.elements.confirmRename.click();
+        });
+
+        // Delete modal
+        this.elements.closeDeleteModal.addEventListener('click', () => this.closeDeleteModal());
+        this.elements.cancelDelete.addEventListener('click', () => this.closeDeleteModal());
+        this.elements.deleteModal.addEventListener('click', (e) => {
+            if (e.target === this.elements.deleteModal) this.closeDeleteModal();
+        });
+        this.elements.confirmDelete.addEventListener('click', () => {
+            if (this._deletingTaskId) this.deleteTask(this._deletingTaskId);
         });
     }
 
@@ -509,138 +554,115 @@ class PlanApp {
         this._editingTaskId = null;
     }
 
-    initSortable() {
-        const list = this.elements.scheduleList;
-        let dragged = null;
-        let placeholder = null;
-        let startY = 0;
-        let offsetY = 0;
-        let itemHeight = 0;
-        let startIndex = 0;
-        let currentIndex = 0;
-        let pointerMoved = false;
+    // ===== Rename =====
+    openRenameModal(taskId) {
+        const task = this.plans.find(p => String(p.id) === String(taskId));
+        if (!task) return;
+        this._renamingTaskId = taskId;
+        this.elements.renameCurrentTime.textContent = task.time || '';
+        this.elements.renameInput.value = task.title;
+        this.elements.renameModal.classList.add('active');
+        document.body.style.overflow = 'hidden';
+        setTimeout(() => { this.elements.renameInput.focus(); this.elements.renameInput.select(); }, 300);
+    }
 
-        const getY = (e) => (e.touches ? e.touches[0].clientY : e.clientY);
+    closeRenameModal() {
+        this.elements.renameModal.classList.remove('active');
+        document.body.style.overflow = '';
+        this._renamingTaskId = null;
+    }
 
-        const onDown = (e) => {
-            const handle = e.target.closest('.drag-handle');
-            if (!handle) return;
-            const item = handle.closest('.schedule-item');
-            if (!item) return;
+    // ===== Delete =====
+    openDeleteModal(taskId) {
+        const task = this.plans.find(p => String(p.id) === String(taskId));
+        if (!task) return;
+        this._deletingTaskId = taskId;
+        this.elements.deleteTaskName.textContent = task.title;
+        this.elements.deleteModal.classList.add('active');
+        document.body.style.overflow = 'hidden';
+    }
 
-            e.preventDefault();
-            pointerMoved = false;
-            dragged = item;
+    closeDeleteModal() {
+        this.elements.deleteModal.classList.remove('active');
+        document.body.style.overflow = '';
+        this._deletingTaskId = null;
+        // Reset any swiped items
+        this.elements.scheduleList.querySelectorAll('.schedule-item').forEach(el => {
+            el.style.transform = '';
+            el.style.transition = 'transform 0.3s ease';
+        });
+    }
 
-            const rect = item.getBoundingClientRect();
-            const listRect = list.getBoundingClientRect();
-            itemHeight = rect.height + 12;
-            startY = getY(e);
-            offsetY = startY - rect.top;
-            startIndex = Array.from(list.querySelectorAll('.schedule-item')).indexOf(item);
-            currentIndex = startIndex;
+    async deleteTask(taskId) {
+        try {
+            await this.authFetch(`${API_BASE}/plans/${taskId}`, { method: 'DELETE' });
+        } catch (err) {
+            console.log('Delete error:', err);
+        }
+        this.plans = this.plans.filter(p => String(p.id) !== String(taskId));
+        this.closeDeleteModal();
+        this.renderSchedule();
+        this.updateProgress();
+        this.updateGreetingSummary();
+    }
 
-            // Placeholder
-            placeholder = document.createElement('div');
-            placeholder.className = 'sort-placeholder';
-            placeholder.style.height = rect.height + 'px';
-            placeholder.style.borderRadius = '20px';
-            placeholder.style.background = 'rgba(255,107,91,0.08)';
-            placeholder.style.border = '2px dashed rgba(255,107,91,0.3)';
-            placeholder.style.transition = 'all 0.2s ease';
+    // ===== Swipe to delete =====
+    initSwipeToDelete() {
+        const items = this.elements.scheduleList.querySelectorAll('.schedule-item');
+        items.forEach(item => {
+            let startX = 0, currentX = 0, swiping = false;
 
-            // Float item
-            item.style.position = 'fixed';
-            item.style.width = rect.width + 'px';
-            item.style.left = rect.left + 'px';
-            item.style.top = rect.top + 'px';
-            item.style.zIndex = '1000';
-            item.style.transition = 'box-shadow 0.15s, transform 0.15s';
-            item.style.boxShadow = '0 12px 40px rgba(0,0,0,0.45)';
-            item.style.transform = 'scale(1.03)';
-            item.style.pointerEvents = 'none';
-            item.classList.add('dragging');
+            const getX = (e) => (e.touches ? e.touches[0].clientX : e.clientX);
 
-            item.parentNode.insertBefore(placeholder, item);
+            const onStart = (e) => {
+                // Don't hijack clicks on buttons
+                if (e.target.closest('.time-edit-icon') || e.target.closest('button')) return;
+                startX = getX(e);
+                currentX = 0;
+                swiping = true;
+                item.style.transition = 'none';
+            };
 
-            document.addEventListener('mousemove', onMove, { passive: false });
-            document.addEventListener('mouseup', onUp);
-            document.addEventListener('touchmove', onMove, { passive: false });
-            document.addEventListener('touchend', onUp);
-        };
+            const onMove = (e) => {
+                if (!swiping) return;
+                currentX = getX(e) - startX;
+                // Only allow right swipe
+                if (currentX < 0) currentX = 0;
+                if (currentX > 0) {
+                    e.preventDefault();
+                    item.style.transform = `translateX(${currentX}px)`;
+                    // Gradually show red tint
+                    const ratio = Math.min(currentX / 120, 1);
+                    item.style.background = `rgba(${180 + 75 * ratio}, ${50 - 20 * ratio}, ${50 - 20 * ratio}, ${0.05 + 0.15 * ratio})`;
+                }
+            };
 
-        const onMove = (e) => {
-            if (!dragged) return;
-            e.preventDefault();
-            pointerMoved = true;
-
-            const y = getY(e);
-            dragged.style.top = (y - offsetY) + 'px';
-            dragged.style.transition = 'none';
-
-            const siblings = Array.from(list.querySelectorAll('.schedule-item')).filter(el => el !== dragged);
-            const newIdx = Math.max(0, Math.min(siblings.length, startIndex + Math.round((y - startY) / itemHeight)));
-
-            if (newIdx !== currentIndex) {
-                currentIndex = newIdx;
-                if (currentIndex >= siblings.length) {
-                    list.appendChild(placeholder);
+            const onEnd = () => {
+                if (!swiping) return;
+                swiping = false;
+                if (currentX > 120) {
+                    // Threshold reached → open delete modal
+                    item.style.transition = 'transform 0.3s ease, background 0.3s ease';
+                    item.style.transform = `translateX(${item.offsetWidth}px)`;
+                    setTimeout(() => {
+                        this.openDeleteModal(item.dataset.id);
+                    }, 200);
                 } else {
-                    list.insertBefore(placeholder, siblings[currentIndex]);
+                    // Snap back
+                    item.style.transition = 'transform 0.3s ease, background 0.3s ease';
+                    item.style.transform = 'translateX(0)';
+                    item.style.background = '';
                 }
-            }
-        };
+            };
 
-        const onUp = () => {
-            if (!dragged) return;
-            document.removeEventListener('mousemove', onMove);
-            document.removeEventListener('mouseup', onUp);
-            document.removeEventListener('touchmove', onMove);
-            document.removeEventListener('touchend', onUp);
-
-            const phRect = placeholder.getBoundingClientRect();
-            dragged.style.transition = 'all 0.25s cubic-bezier(0.2,0,0,1)';
-            dragged.style.top = phRect.top + 'px';
-            dragged.style.left = phRect.left + 'px';
-            dragged.style.boxShadow = 'none';
-            dragged.style.transform = 'scale(1)';
-            dragged.classList.remove('dragging');
-
-            const movedItem = dragged;
-            const finalIndex = currentIndex;
-            const origIndex = startIndex;
-            dragged = null;
-
-            setTimeout(() => {
-                movedItem.style.cssText = '';
-                if (placeholder && placeholder.parentNode) {
-                    placeholder.parentNode.insertBefore(movedItem, placeholder);
-                    placeholder.remove();
-                }
-                placeholder = null;
-
-                if (origIndex !== finalIndex && pointerMoved) {
-                    const sorted = [...this.plans].sort((a, b) => (a.time || '').localeCompare(b.time || ''));
-                    const originalTimes = sorted.map(p => p.time);
-                    const [moved] = sorted.splice(origIndex, 1);
-                    sorted.splice(finalIndex, 0, moved);
-
-                    sorted.forEach((task, i) => {
-                        task.time = originalTimes[i];
-                        this.authFetch(`${API_BASE}/plans/${task.id}`, {
-                            method: 'PUT',
-                            body: JSON.stringify({ time: task.time })
-                        }).catch(err => console.log('Reorder save error:', err));
-                    });
-
-                    this.renderSchedule();
-                    this.updateGreetingSummary();
-                }
-            }, 260);
-        };
-
-        list.addEventListener('mousedown', onDown);
-        list.addEventListener('touchstart', onDown, { passive: false });
+            item.addEventListener('touchstart', onStart, { passive: true });
+            item.addEventListener('touchmove', onMove, { passive: false });
+            item.addEventListener('touchend', onEnd);
+            item.addEventListener('mousedown', onStart);
+            item.addEventListener('mousemove', onMove);
+            item.addEventListener('mouseup', onEnd);
+            item.addEventListener('mouseleave', onEnd);
+        });
     }
 
     // ===== Rendering =====
@@ -662,49 +684,33 @@ class PlanApp {
         const sorted = [...this.plans].sort((a, b) => (a.time || '').localeCompare(b.time || ''));
 
         if (this.isEditMode) {
-            // Edit mode: drag handle to reorder + tap to change time
+            // Edit mode: tap title → rename, tap time → change time, swipe right → delete
             this.elements.scheduleList.innerHTML = sorted.map(task => `
                 <div class="schedule-item edit-item" data-id="${task.id}">
-                    <div class="drag-handle" title="드래그하여 이동">
-                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-                            <circle cx="9" cy="5" r="1"></circle>
-                            <circle cx="15" cy="5" r="1"></circle>
-                            <circle cx="9" cy="12" r="1"></circle>
-                            <circle cx="15" cy="12" r="1"></circle>
-                            <circle cx="9" cy="19" r="1"></circle>
-                            <circle cx="15" cy="19" r="1"></circle>
-                        </svg>
+                    <div class="item-content">
+                        <button class="time-tag-btn" data-id="${task.id}">${this.escapeHtml(task.time || '시간 설정')}</button>
+                        <div class="edit-title-btn" data-id="${task.id}">${this.escapeHtml(task.title)}</div>
                     </div>
-                    <div class="item-content edit-content">
-                        <div class="schedule-item-time edit-time">${this.escapeHtml(task.time || '시간 없음')}</div>
-                        <div class="schedule-item-title">${this.escapeHtml(task.title)}</div>
-                    </div>
-                    <button class="time-edit-icon" data-id="${task.id}">
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <circle cx="12" cy="12" r="10"></circle>
-                            <polyline points="12 6 12 12 16 14"></polyline>
-                        </svg>
-                    </button>
+                    <div class="swipe-hint">← 밀어서 삭제</div>
                 </div>
             `).join('');
 
-            // Smooth drag reorder
-            this.initSortable();
+            // Swipe to delete
+            this.initSwipeToDelete();
 
-            // Tap to change time (clock icon)
-            this.elements.scheduleList.querySelectorAll('.time-edit-icon').forEach(btn => {
+            // Tap time tag → time change modal
+            this.elements.scheduleList.querySelectorAll('.time-tag-btn').forEach(btn => {
                 btn.addEventListener('click', (e) => {
                     e.stopPropagation();
                     this.openTimeChangeModal(btn.dataset.id);
                 });
             });
 
-            // Tap on card content to change time
-            this.elements.scheduleList.querySelectorAll('.edit-content').forEach(content => {
-                content.style.cursor = 'pointer';
-                content.addEventListener('click', () => {
-                    const item = content.closest('.schedule-item');
-                    this.openTimeChangeModal(item.dataset.id);
+            // Tap title → rename modal
+            this.elements.scheduleList.querySelectorAll('.edit-title-btn').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    this.openRenameModal(btn.dataset.id);
                 });
             });
         } else {

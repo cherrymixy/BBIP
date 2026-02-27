@@ -381,6 +381,57 @@
         </div>
     </div>
 
+    <!-- Rename Modal -->
+    <div class="modal-backdrop" id="renameModal">
+        <div class="modal-panel time-change-panel">
+            <div class="modal-header">
+                <div>
+                    <h2>일정 수정</h2>
+                    <p class="modal-subtitle" id="renameCurrentTime">시간</p>
+                </div>
+                <button class="modal-close" id="closeRenameModal">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="18" y1="6" x2="6" y2="18"></line>
+                        <line x1="6" y1="6" x2="18" y2="18"></line>
+                    </svg>
+                </button>
+            </div>
+            <div class="modal-body">
+                <input type="text" id="renameInput" class="rename-input-field" placeholder="일정 이름을 입력하세요">
+            </div>
+            <div class="modal-footer">
+                <button class="submit-btn" id="confirmRename">
+                    수정 완료
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Delete Confirm Modal -->
+    <div class="modal-backdrop" id="deleteModal">
+        <div class="modal-panel time-change-panel">
+            <div class="modal-header">
+                <div>
+                    <h2>일정 삭제</h2>
+                    <p class="modal-subtitle" id="deleteTaskName">일정</p>
+                </div>
+                <button class="modal-close" id="closeDeleteModal">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="18" y1="6" x2="6" y2="18"></line>
+                        <line x1="6" y1="6" x2="18" y2="18"></line>
+                    </svg>
+                </button>
+            </div>
+            <div class="modal-body">
+                <p class="delete-confirm-text">이 일정을 삭제하시겠습니까?</p>
+            </div>
+            <div class="modal-footer delete-footer">
+                <button class="cancel-btn" id="cancelDelete">취소</button>
+                <button class="delete-btn" id="confirmDelete">삭제</button>
+            </div>
+        </div>
+    </div>
+
     <!-- Voice Recording Overlay -->
     <div class="voice-overlay" id="voiceOverlay">
         <div class="voice-content">
