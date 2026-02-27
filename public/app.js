@@ -463,53 +463,78 @@ class PlanApp {
 
         const btn = document.getElementById('completePlanBtn');
         btn.disabled = true;
-        btn.innerHTML = '<span class="btn-sparkle">✦</span> AI 분석 중...';
+        btn.innerHTML = '<span class="btn-sparkle">✦</span> 분석 중...';
 
-        let tasks;
+        // Step 1: 로컬 파서로 즉시 파싱
+        let tasks = this.parsePlanText(planText);
 
-        // Step 1: AI로 자연어 파싱
+        // Step 2: AI 파싱 시도 (더 좋은 결과가 있으면 교체)
         try {
             const parseRes = await this.authFetch(`${API_BASE}/plans/parse`, {
                 method: 'POST',
                 body: JSON.stringify({ text: planText })
             });
-            if (!parseRes) return;
-            const parseData = await parseRes.json();
-            if (parseData.success && parseData.data.length > 0) {
-                tasks = parseData.data;
+            if (parseRes) {
+                const parseData = await parseRes.json();
+                if (parseData.success && parseData.data.length > 0) {
+                    tasks = parseData.data;
+                }
             }
         } catch (err) {
-            console.log('AI parse failed, using fallback:', err);
+            console.log('AI parse failed, using local parser:', err);
         }
 
-        // Fallback: 로컬 파서
         if (!tasks || tasks.length === 0) {
-            tasks = this.parsePlanText(planText);
+            // 파싱 실패 시 그냥 전체 텍스트를 하나의 일정으로
+            tasks = [{ title: planText, time: '', date: new Date().toISOString().split('T')[0] }];
         }
 
         btn.innerHTML = '<span class="btn-sparkle">✦</span> 저장 중...';
 
-        // Step 2: 계획 저장
+        // Step 3: 서버에 저장 시도
         try {
             const res = await this.authFetch(`${API_BASE}/plans/bulk`, {
                 method: 'POST',
                 body: JSON.stringify({ plans: tasks })
             });
-            if (!res) return;
-            const data = await res.json();
-            if (data.success) this.plans = [...this.plans, ...data.data];
+            if (res) {
+                const data = await res.json();
+                if (data.success) {
+                    this.plans = [...this.plans, ...data.data];
+                } else {
+                    // 서버 에러여도 로컬에 추가
+                    this.addTasksLocally(tasks);
+                }
+            } else {
+                // 인증 실패여도 로컬에 추가하여 UI에 표시
+                this.addTasksLocally(tasks);
+            }
         } catch (err) {
             console.log('Bulk create error:', err);
-        } finally {
-            btn.disabled = false;
-            btn.innerHTML = '<span class="btn-sparkle">✦</span> 계획 입력 완료';
+            // API 실패해도 로컬에 추가
+            this.addTasksLocally(tasks);
         }
+
+        btn.disabled = false;
+        btn.innerHTML = '<span class="btn-sparkle">✦</span> 계획 입력 완료';
 
         this.elements.planTextDisplay.textContent = '';
         this.closeModal();
         this.renderSchedule();
         this.updateProgress();
         this.updateGreetingSummary();
+    }
+
+    addTasksLocally(tasks) {
+        const today = new Date().toISOString().split('T')[0];
+        const localTasks = tasks.map((t, i) => ({
+            id: `local_${Date.now()}_${i}`,
+            title: t.title,
+            time: t.time || '',
+            date: t.date || today,
+            completed: false,
+        }));
+        this.plans = [...this.plans, ...localTasks];
     }
 
     async toggleTaskCompletion(id) {
