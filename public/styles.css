@@ -1691,6 +1691,11 @@ body {
         transform: translateX(0);
     }
 
+    .sidebar.open~.mobile-menu-btn {
+        opacity: 0;
+        pointer-events: none;
+    }
+
     .mobile-menu-btn {
         display: flex;
     }
