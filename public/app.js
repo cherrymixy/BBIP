@@ -275,15 +275,13 @@ class PlanApp {
         let greeting = hour < 12 ? '좋은 아침입니다' : hour < 18 ? '좋은 오후입니다' : '좋은 저녁입니다';
         const greetHello = document.querySelector('.greeting-hello');
         if (greetHello && this.auth.user) {
-            greetHello.innerHTML = `${greeting}, <span class="emoji">${this.escapeHtml(this.auth.user.emoji || '🐔')}</span> <strong>${this.escapeHtml(this.auth.user.name)}</strong> 님`;
+            greetHello.innerHTML = `${greeting}, <span class="emoji">${this.escapeHtml(this.auth.user.emoji || '🐔')}</span> <strong>${this.escapeHtml(this.auth.user.name)}</strong> 님,`;
         }
     }
 
     setupAppListeners() {
         // Plan modal
         document.getElementById('openPlanInput').addEventListener('click', () => this.openModal());
-        const emptyAddBtn = document.getElementById('emptyAddBtn');
-        if (emptyAddBtn) emptyAddBtn.addEventListener('click', () => this.openModal());
         document.getElementById('closePlanModal').addEventListener('click', () => this.closeModal());
         this.elements.planModal.addEventListener('click', (e) => {
             if (e.target === this.elements.planModal) this.closeModal();
@@ -517,7 +515,7 @@ class PlanApp {
 
     updateGreetingSummary() {
         if (this.plans.length === 0) {
-            this.elements.planSummary.innerHTML = '아직 오늘의 계획이 없습니다.<br>상단의 <strong>계획 입력하기</strong> 버튼을 눌러 하루를 시작해보세요! ✨';
+            this.elements.planSummary.innerHTML = '📋 오늘의 <strong>계획</strong>을 입력해 보세요.';
             return;
         }
         const incomplete = this.plans.filter(p => !p.completed);
